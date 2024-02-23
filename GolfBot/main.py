@@ -40,12 +40,12 @@ def shootBalls():
 def testDrive():
     robot.straight(100)
     robot.angle(90)
-    robot.straight(100)
+
 
 
 pickBalls()
 x = 0
-while x<4:
+while x<3:
     testDrive()
     x += 1
 shootBalls()
