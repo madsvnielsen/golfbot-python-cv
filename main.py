@@ -24,7 +24,7 @@ BOUND_THRESH = 30
 BOUND_MINLEN = 50
 BOUND_MAXGAP = 5
 
-
+REFRESH_BOUND_FRAME = 1000
 
 
 def monitor_cmd():
@@ -142,7 +142,7 @@ def find_edges(frame):
 
 
 def start():
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
     font                   = cv2.FONT_HERSHEY_SIMPLEX
     bottomLeftCornerOfText = (10,500)
     fontScale              = 1
@@ -150,10 +150,22 @@ def start():
     thickness              = 3
     lineType               = 2
 
+    ret, frame = cap.read()
+
+    vertical_center = int(frame.shape[0]/2)
+    horizontal_center = int(frame.shape[1]/2)
+    top_left = [horizontal_center, vertical_center]
+    top_right  = [horizontal_center, vertical_center]
+    bottom_left  = [horizontal_center, vertical_center]
+    bottom_right = [horizontal_center, vertical_center]
+
+    current_frame = 0
+
     if not cap.isOpened():
         print("Cannot open camera")
         exit()
     while True:
+        current_frame +=1
         # Capture frame-by-frame
         ret, frame = cap.read()
         # if frame is read correctly ret is True
@@ -182,7 +194,20 @@ def start():
                     fontColor,
                     thickness,
                     lineType)
+
         if lines is not None:
+
+            if current_frame > REFRESH_BOUND_FRAME:
+                current_frame = 0
+                vertical_center = int(frame.shape[0]/2)
+                horizontal_center = int(frame.shape[1]/2)
+                top_left = [horizontal_center, vertical_center]
+                top_right  = [horizontal_center, vertical_center]
+                bottom_left  = [horizontal_center, vertical_center]
+                bottom_right = [horizontal_center, vertical_center]
+
+
+
             for points in lines:
                 x1,y1,x2,y2=points[0]
                 delta_y = y2-y1
@@ -190,21 +215,102 @@ def start():
                 slope = math.atan2(delta_y, delta_x)
                 cv2.line(frame,(x1,y1),(x2,y2),(0,255,0),2)
 
+
+
                 slope_type = "Unknown"
 
+
+                ## Is line vertical?
                 if 1.3 < abs(slope) < 1.6:
-                    slope_type = "Vertical"
 
+                    start_x, start_y = x1, y1
+                    end_x, end_y = x2, y2
+                    if y2 < y1:
+                        start_x, start_y = x2, y2
+                        end_x, end_y = x1, y1
+
+                    if start_x <  horizontal_center:
+                        slope_type = "Left"
+                        if start_y < top_left[1]:
+                            top_left[1] = start_y
+                        if end_y > bottom_left[1]:
+                            bottom_left[1] = end_y
+                    else:
+                        slope_type = "Right"
+                        if start_y < top_right[1]:
+                            top_right[1] = start_y
+                        if end_y > bottom_right[1]:
+                            bottom_right[1] = end_y
+
+                ## Is line horizontal?
                 if -0.5 < slope < 0.5:
-                    slope_type = "Horizontal"
+                    start_x, start_y = x1, y1
+                    end_x, end_y = x2, y2
+                    if x2 < x1:
+                        start_x, start_y = x2, y2
+                        end_x, end_y = x1, y1
 
-                cv2.putText(frame,str(slope_type) + ": " + str(slope),
-                    (x1,y1),
-                    font,
-                    fontScale,
-                    fontColor,
-                    thickness,
-                    lineType)
+                    if start_y <  vertical_center:
+                        slope_type = "Top"
+                        if start_x < top_left[0]:
+                            top_left[0] = start_x
+                        if end_x > top_right[0]:
+                            top_right[0] = end_x
+                    else:
+                        slope_type = "Bottom"
+                        if start_x < bottom_left[0]:
+                            bottom_left[0] = start_x
+                        if end_x > bottom_right[0]:
+                            top_right[0] = end_x
+
+        cv2.putText(frame,'Bottom left: ' + str(bottom_left),
+            (bottom_left[0],bottom_left[1]),
+            font,
+            fontScale,
+            fontColor,
+            thickness,
+            lineType)
+
+
+        cv2.putText(frame,'Bottom right: ' + str(bottom_right),
+            (bottom_right[0],bottom_right[1]),
+            font,
+            fontScale,
+            fontColor,
+            thickness,
+            lineType)
+
+        coords = [horizontal_center,vertical_center]
+
+        cv2.putText(frame,'CENTER: ' + str(coords),
+            (coords[0], coords[1]),
+            font,
+            fontScale,
+            fontColor,
+            thickness,
+            lineType)
+
+
+        cv2.putText(frame,'Top right: ' + str(top_right),
+            (top_right[0],top_right[1]),
+            font,
+            fontScale,
+            fontColor,
+            thickness,
+            lineType)
+
+
+        cv2.putText(frame,'top_left: ' + str(top_left),
+            (top_left[0],top_left[1]),
+            font,
+            fontScale,
+            fontColor,
+            thickness,
+            lineType)
+        cv2.line(frame,(top_left[0], top_left[1]),(top_right[0], top_right[1]),(0,255,0),2)
+        cv2.line(frame,(bottom_left[0], bottom_left[1]),(bottom_right[0], bottom_right[1]),(0,255,0),2)
+        cv2.line(frame,(bottom_left[0], bottom_left[1]),(top_left[0], top_left[1]),(0,0,255),2)
+        cv2.line(frame,(top_right[0], top_right[1]),(bottom_right[0], bottom_right[1]),(0,0,255),2)
 
 
         stack1 = np.concatenate((cv2.cvtColor(circle_edges, cv2.COLOR_GRAY2BGR), frame), axis=0)
