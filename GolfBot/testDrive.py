@@ -19,6 +19,22 @@ golfBot.gyro = GyroSensor()
 ballPicker = MediumMotor(OUTPUT_C)
 
 # Write your program here.
-
+def testDrive():
+    golfBot.on_for_seconds(200, 200, 10, True, True)
+    golfBot.turn_degrees(speed=SpeedPercent(5), target_angle=90)
+    
+x = 0
+while x<3:
+    if(x==0):
+        ballPicker.run_forever
+    golfBot.gyro.calibrate()    
+    testDrive()
+    x += 1
+    if(x == 3):
+        ballPicker.stop
+        golfBot.on_for_seconds(200, 200, 10, True, True)
+        break
 
     
+
+
