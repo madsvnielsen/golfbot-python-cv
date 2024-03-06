@@ -24,7 +24,20 @@ BOUND_THRESH = 30
 BOUND_MINLEN = 50
 BOUND_MAXGAP = 5
 
-REFRESH_BOUND_FRAME = 1000
+REFRESH_BOUND_FRAME = 20
+CURRENT_FRAME = 0
+FIND_COURSE = True
+
+
+top_left = [0,0]
+top_right  = [0,0]
+bottom_left  = [0,0]
+bottom_right = [0,0]
+
+
+## Cross FINDING
+template = cv2.imread("cross_template.png")
+cross_startX, cross_startY, cross_endX, cross_endY = (0,0,0,0)
 
 
 def monitor_cmd():
@@ -138,10 +151,156 @@ def find_edges(frame):
             )
     return lines, edges, img
 
+def update_course_edges(lines, horizontal_center, vertical_center):
+    if lines is not None:
 
+
+        for points in lines:
+            x1,y1,x2,y2=points[0]
+            delta_y = y2-y1
+            delta_x = x2-x1
+            slope = math.atan2(delta_y, delta_x)
+
+            slope_type = "Unknown"
+
+
+            ## Is line vertical?
+            if 1.3 < abs(slope) < 1.6:
+
+                start_x, start_y = x1, y1
+                end_x, end_y = x2, y2
+                if y2 < y1:
+                    start_x, start_y = x2, y2
+                    end_x, end_y = x1, y1
+
+                if start_x <  horizontal_center:
+                    slope_type = "Left"
+                    if start_y < top_left[1]:
+                        top_left[1] = start_y   # top_left y
+                    if end_y > bottom_left[1]:
+                        bottom_left[1] = end_y  # bottem_left y
+                else:
+                    slope_type = "Right"
+                    if start_y < top_right[1]:
+                        top_right[1] = start_y  # top right y
+                    if end_y > bottom_right[1]:
+                        bottom_right[1] = end_y # bottom right y
+
+            ## Is line horizontal?
+            if -0.5 < slope < 0.5:
+                start_x, start_y = x1, y1
+                end_x, end_y = x2, y2
+                if x2 < x1:
+                    start_x, start_y = x2, y2
+                    end_x, end_y = x1, y1
+
+                if start_y <  vertical_center:
+                    slope_type = "Top"
+                    if start_x < top_left[0]:
+                        top_left[0] = start_x # top left x
+                    if end_x > top_right[0]:
+                        top_right[0] = end_x # top right x
+                else:
+                    slope_type = "Bottom"
+                    if start_x < bottom_left[0]:
+                        bottom_left[0] = start_x # bottom left x
+                    if end_x > bottom_right[0]:
+                        bottom_right[0] = end_x # bottom right x
+
+
+def find_cross(frame):
+    global template, cross_startX, cross_startY, cross_endX, cross_endY
+    imageGray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    templateGray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+    result = cv2.matchTemplate(imageGray, templateGray,
+	cv2.TM_CCOEFF_NORMED)
+    (minVal, maxVal, minLoc, maxLoc) = cv2.minMaxLoc(result)
+    (cross_startX, cross_startY) = maxLoc
+    cross_endX = cross_startX + template.shape[1]
+    cross_endY = cross_startY + template.shape[0]
+
+
+
+
+
+def draw_balls(circles, frame):
+    font                   = cv2.FONT_HERSHEY_SIMPLEX
+    bottomLeftCornerOfText = (10,500)
+    fontScale              = 1
+    fontColor              = (255,0,0)
+    thickness              = 3
+    lineType               = 2
+    if circles is not None:
+        circles = np.uint16(np.around(circles))
+        for i in circles[0,:]:
+            # draw the outer circle
+            cv2.circle(frame,(i[0],i[1]),i[2],(0,255,0),2)
+            # draw the center of the circle
+            cv2.circle(frame,(i[0],i[1]),2,(0,0,255),3)
+            cv2.putText(frame,'Ball',
+                (i[0],i[1]),
+                font,
+                fontScale,
+                fontColor,
+                thickness,
+                lineType)
+
+
+def draw_course(frame):
+    global top_left, top_right, bottom_right, bottom_left
+    font                   = cv2.FONT_HERSHEY_SIMPLEX
+    bottomLeftCornerOfText = (10,500)
+    fontScale              = 1
+    fontColor              = (255,0,0)
+    thickness              = 3
+    lineType               = 2
+    cv2.putText(frame,'Bottom left: ' + str(bottom_left),
+        (bottom_left[0],bottom_left[1]),
+        font,
+        fontScale,
+        fontColor,
+        thickness,
+        lineType)
+
+
+    cv2.putText(frame,'Bottom right: ' + str(bottom_right),
+        (bottom_right[0],bottom_right[1]),
+        font,
+        fontScale,
+        fontColor,
+        thickness,
+        lineType)
+
+
+    cv2.putText(frame,'Top right: ' + str(top_right),
+        (top_right[0],top_right[1]),
+        font,
+        fontScale,
+        fontColor,
+        thickness,
+        lineType)
+
+
+    cv2.putText(frame,'top_left: ' + str(top_left),
+        (top_left[0],top_left[1]),
+        font,
+        fontScale,
+        fontColor,
+        thickness,
+        lineType)
+    cv2.line(frame,(top_left[0], top_left[1]),(top_right[0], top_right[1]),(0,255,0),5)
+    cv2.line(frame,(bottom_left[0], bottom_left[1]),(bottom_right[0], bottom_right[1]),(0,255,0),5)
+    cv2.line(frame,(bottom_left[0], bottom_left[1]),(top_left[0], top_left[1]),(0,255,0),5)
+    cv2.line(frame,(top_right[0], top_right[1]),(bottom_right[0], bottom_right[1]),(0,255,0),5)
+
+
+def draw_cross(frame):
+    global cross_startX, cross_startY, cross_endX, cross_startY
+    cv2.rectangle(frame, (cross_startX, cross_startY), (cross_endX, cross_endY), (255, 0, 0), 3)
 
 
 def start():
+    global FIND_COURSE, CURRENT_FRAME, REFRESH_BOUND_FRAME, top_left, top_right, bottom_right, bottom_left
     cap = cv2.VideoCapture(0)
     font                   = cv2.FONT_HERSHEY_SIMPLEX
     bottomLeftCornerOfText = (10,500)
@@ -179,138 +338,27 @@ def start():
 
         circles, circle_edges = balls(frame)
         lines, course_edges, mask_img = find_edges(frame)
-
-        if circles is not None:
-            circles = np.uint16(np.around(circles))
-            for i in circles[0,:]:
-                # draw the outer circle
-                cv2.circle(frame,(i[0],i[1]),i[2],(0,255,0),2)
-                # draw the center of the circle
-                cv2.circle(frame,(i[0],i[1]),2,(0,0,255),3)
-                cv2.putText(frame,'Ball',
-                    (i[0],i[1]),
-                    font,
-                    fontScale,
-                    fontColor,
-                    thickness,
-                    lineType)
-
-        if lines is not None:
-
+        if FIND_COURSE:
+            update_course_edges(lines, horizontal_center, vertical_center)
+            find_cross(frame)
+            cv2.putText(frame,'FINDING COURSE BOUNDARIES',
+                [horizontal_center, vertical_center],
+                font,
+                fontScale,
+                fontColor,
+                thickness,
+                lineType)
             if current_frame > REFRESH_BOUND_FRAME:
-                current_frame = 0
-                vertical_center = int(frame.shape[0]/2)
-                horizontal_center = int(frame.shape[1]/2)
-                top_left = [horizontal_center, vertical_center]
-                top_right  = [horizontal_center, vertical_center]
-                bottom_left  = [horizontal_center, vertical_center]
-                bottom_right = [horizontal_center, vertical_center]
+                FIND_COURSE = False
 
 
 
-            for points in lines:
-                x1,y1,x2,y2=points[0]
-                delta_y = y2-y1
-                delta_x = x2-x1
-                slope = math.atan2(delta_y, delta_x)
-                cv2.line(frame,(x1,y1),(x2,y2),(0,255,0),2)
 
 
 
-                slope_type = "Unknown"
-
-
-                ## Is line vertical?
-                if 1.3 < abs(slope) < 1.6:
-
-                    start_x, start_y = x1, y1
-                    end_x, end_y = x2, y2
-                    if y2 < y1:
-                        start_x, start_y = x2, y2
-                        end_x, end_y = x1, y1
-
-                    if start_x <  horizontal_center:
-                        slope_type = "Left"
-                        if start_y < top_left[1]:
-                            top_left[1] = start_y
-                        if end_y > bottom_left[1]:
-                            bottom_left[1] = end_y
-                    else:
-                        slope_type = "Right"
-                        if start_y < top_right[1]:
-                            top_right[1] = start_y
-                        if end_y > bottom_right[1]:
-                            bottom_right[1] = end_y
-
-                ## Is line horizontal?
-                if -0.5 < slope < 0.5:
-                    start_x, start_y = x1, y1
-                    end_x, end_y = x2, y2
-                    if x2 < x1:
-                        start_x, start_y = x2, y2
-                        end_x, end_y = x1, y1
-
-                    if start_y <  vertical_center:
-                        slope_type = "Top"
-                        if start_x < top_left[0]:
-                            top_left[0] = start_x
-                        if end_x > top_right[0]:
-                            top_right[0] = end_x
-                    else:
-                        slope_type = "Bottom"
-                        if start_x < bottom_left[0]:
-                            bottom_left[0] = start_x
-                        if end_x > bottom_right[0]:
-                            top_right[0] = end_x
-
-        cv2.putText(frame,'Bottom left: ' + str(bottom_left),
-            (bottom_left[0],bottom_left[1]),
-            font,
-            fontScale,
-            fontColor,
-            thickness,
-            lineType)
-
-
-        cv2.putText(frame,'Bottom right: ' + str(bottom_right),
-            (bottom_right[0],bottom_right[1]),
-            font,
-            fontScale,
-            fontColor,
-            thickness,
-            lineType)
-
-        coords = [horizontal_center,vertical_center]
-
-        cv2.putText(frame,'CENTER: ' + str(coords),
-            (coords[0], coords[1]),
-            font,
-            fontScale,
-            fontColor,
-            thickness,
-            lineType)
-
-
-        cv2.putText(frame,'Top right: ' + str(top_right),
-            (top_right[0],top_right[1]),
-            font,
-            fontScale,
-            fontColor,
-            thickness,
-            lineType)
-
-
-        cv2.putText(frame,'top_left: ' + str(top_left),
-            (top_left[0],top_left[1]),
-            font,
-            fontScale,
-            fontColor,
-            thickness,
-            lineType)
-        cv2.line(frame,(top_left[0], top_left[1]),(top_right[0], top_right[1]),(0,255,0),2)
-        cv2.line(frame,(bottom_left[0], bottom_left[1]),(bottom_right[0], bottom_right[1]),(0,255,0),2)
-        cv2.line(frame,(bottom_left[0], bottom_left[1]),(top_left[0], top_left[1]),(0,0,255),2)
-        cv2.line(frame,(top_right[0], top_right[1]),(bottom_right[0], bottom_right[1]),(0,0,255),2)
+        draw_balls(circles, frame)
+        draw_course(frame)
+        draw_cross(frame)
 
 
         stack1 = np.concatenate((cv2.cvtColor(circle_edges, cv2.COLOR_GRAY2BGR), frame), axis=0)
