@@ -8,7 +8,7 @@ from time import sleep
 
 from ev3dev2.motor import LargeMotor, OUTPUT_A, OUTPUT_B, SpeedPercent, MoveTank
 from ev3dev2.motor import MediumMotor, OUTPUT_C
-from ev3dev2.sensor.lego import GyroSensor, INTPUT_1
+from ev3dev2.sensor.lego import GyroSensor 
 
 
 # This program requires LEGO EV3 MicroPython v2.0 or higher.½
@@ -19,7 +19,7 @@ from ev3dev2.sensor.lego import GyroSensor, INTPUT_1
 rigtMortor = LargeMotor(OUTPUT_B)
 leftMotor = LargeMotor(OUTPUT_A)
 golfBot = MoveTank(OUTPUT_A, OUTPUT_B)
-golfBot.gyro = GyroSensor(INTPUT_1)
+golfBot.gyro = GyroSensor()
 ballPicker = MediumMotor(OUTPUT_C)
 
 # Write your program here.
