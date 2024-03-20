@@ -151,34 +151,47 @@ def find_edges(frame):
             )
     return lines, edges, img
 
+
 def update_course_edges(lines, horizontal_center, vertical_center):
     if lines is not None:
 
-
+        ##Idea is to get the corners of the lines that are closes to the edge of the frame
         for points in lines:
             x1,y1,x2,y2=points[0]
             delta_y = y2-y1
             delta_x = x2-x1
             slope = math.atan2(delta_y, delta_x)
-
             slope_type = "Unknown"
 
+            ## Use the slope of the lines to determine if its vertical or horizontal
+            ## Change the y-coordinates of the course corners if they are further towards
+            ## the edge of the frame than the current lines.
 
             ## Is line vertical?
             if 1.3 < abs(slope) < 1.6:
-
                 start_x, start_y = x1, y1
+
+                ## Make sure that the start of the line is the point with smallest y
                 end_x, end_y = x2, y2
                 if y2 < y1:
                     start_x, start_y = x2, y2
                     end_x, end_y = x1, y1
 
+                ## If the start of the line is further to the left than the horizontal center,
+                ## the line is a 'Left' line.
                 if start_x <  horizontal_center:
                     slope_type = "Left"
+
+                    ## If the y position of the start of the line is above the middle,
+                    ## update the perceived top left corner of the course. Change the
+                    ## bottom left if otherwise, as the line is below the middle
                     if start_y < top_left[1]:
                         top_left[1] = start_y   # top_left y
                     if end_y > bottom_left[1]:
                         bottom_left[1] = end_y  # bottem_left y
+
+                        ## Do the same with the lines that are to the right of the horizontal_center, but
+                        ## update top right and bottom right instead
                 else:
                     slope_type = "Right"
                     if start_y < top_right[1]:
@@ -187,9 +200,13 @@ def update_course_edges(lines, horizontal_center, vertical_center):
                         bottom_right[1] = end_y # bottom right y
 
             ## Is line horizontal?
+            ## Much like the previous section, the line is registered as being horizontal if the slope is
+            ## between a certain interval. Then it is checked wether it is in the top or bottom depending on its
+            ## y coordinates. Afterwards it is checked wether wether is it right or left and the corners' x values updated
             if -0.5 < slope < 0.5:
                 start_x, start_y = x1, y1
                 end_x, end_y = x2, y2
+                ## Make sure that the start of the line is the point with smallest x
                 if x2 < x1:
                     start_x, start_y = x2, y2
                     end_x, end_y = x1, y1
@@ -207,7 +224,7 @@ def update_course_edges(lines, horizontal_center, vertical_center):
                     if end_x > bottom_right[0]:
                         bottom_right[0] = end_x # bottom right x
 
-
+## Finds the cross on the field via simple template matching
 def find_cross(frame):
     global template, cross_startX, cross_startY, cross_endX, cross_endY
     imageGray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -219,10 +236,7 @@ def find_cross(frame):
     cross_endX = cross_startX + template.shape[1]
     cross_endY = cross_startY + template.shape[0]
 
-
-
-
-
+## Draws balls (given by a result of HoughCircles) on a frame
 def draw_balls(circles, frame):
     font                   = cv2.FONT_HERSHEY_SIMPLEX
     bottomLeftCornerOfText = (10,500)
@@ -313,6 +327,7 @@ def start():
 
     vertical_center = int(frame.shape[0]/2)
     horizontal_center = int(frame.shape[1]/2)
+    ##Initialize the course corner-coordinates to be in the center of the frame.
     top_left = [horizontal_center, vertical_center]
     top_right  = [horizontal_center, vertical_center]
     bottom_left  = [horizontal_center, vertical_center]
@@ -338,6 +353,8 @@ def start():
 
         circles, circle_edges = balls(frame)
         lines, course_edges, mask_img = find_edges(frame)
+
+        ## Only find course during startup, otherwise we expect the course to be static.
         if FIND_COURSE:
             update_course_edges(lines, horizontal_center, vertical_center)
             find_cross(frame)
