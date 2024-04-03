@@ -12,7 +12,7 @@ import math
 GAUSSIAN_BLUR = (37,37)
 EDGE_CANNY_THRESHOLD = 60
 EDGE_ACCUMULATOR_THRESHOLD = 60
-HOUGH_DP = 3.8
+HOUGH_DP = 2
 HOUGH_MIN_DISTANCE = 50
 HOUGH_MIN_RADIUS = 5
 HOUGH_MAX_RADIUS = 25
@@ -315,7 +315,7 @@ def draw_cross(frame):
 
 def start():
     global FIND_COURSE, CURRENT_FRAME, REFRESH_BOUND_FRAME, top_left, top_right, bottom_right, bottom_left
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
     font                   = cv2.FONT_HERSHEY_SIMPLEX
     bottomLeftCornerOfText = (10,500)
     fontScale              = 1
@@ -357,7 +357,7 @@ def start():
         ## Only find course during startup, otherwise we expect the course to be static.
         if FIND_COURSE:
             update_course_edges(lines, horizontal_center, vertical_center)
-            find_cross(frame)
+            ##find_cross(frame)
             cv2.putText(frame,'FINDING COURSE BOUNDARIES',
                 [horizontal_center, vertical_center],
                 font,
@@ -375,7 +375,7 @@ def start():
 
         draw_balls(circles, frame)
         draw_course(frame)
-        draw_cross(frame)
+        ##draw_cross(frame)
 
 
         stack1 = np.concatenate((cv2.cvtColor(circle_edges, cv2.COLOR_GRAY2BGR), frame), axis=0)
