@@ -9,13 +9,30 @@ import math
 window_name = "Window Name"
 
 ## BALL DETECTION
-GAUSSIAN_BLUR = (37,37)
+GAUSSIAN_BLUR = (27,27)
 EDGE_CANNY_THRESHOLD = 60
 EDGE_ACCUMULATOR_THRESHOLD = 60
 HOUGH_DP = 2
 HOUGH_MIN_DISTANCE = 50
 HOUGH_MIN_RADIUS = 5
 HOUGH_MAX_RADIUS = 25
+
+
+## BALL DETECTION V2
+params = cv2.SimpleBlobDetector_Params()
+params.minThreshold = 0;
+params.maxThreshold = 200;
+params.filterByArea = True
+params.minArea = 250
+params.filterByCircularity = True
+params.minCircularity = 0.25
+params.filterByConvexity = True
+params.minConvexity = 0.87 
+params.filterByInertia = True
+params.minInertiaRatio = 0.5
+
+#detector = cv2.SimpleBlobDetector_create(params)
+detector = cv2.SimpleBlobDetector_create(params)
 
 ## BOUNDARY DETECTION
 BOUND_DP = 10
@@ -117,8 +134,15 @@ def monitor_cmd():
 
 
 def balls(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    lower = np.array([200, 200, 200], dtype='uint8')
+    upper = np.array([255, 255, 255], dtype='uint8')
+
+    mask = cv2.inRange(frame, lower, upper)
+    img = cv2.bitwise_and(frame, frame, mask = mask)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     hist = cv2.GaussianBlur(gray, GAUSSIAN_BLUR, cv2.BORDER_DEFAULT)
+    
     blurred = hist#cv2.equalizeHist(hist)
 
     edges = cv2.Canny(blurred,EDGE_CANNY_THRESHOLD,EDGE_ACCUMULATOR_THRESHOLD)
@@ -130,6 +154,18 @@ def balls(frame):
     minRadius=HOUGH_MIN_RADIUS,
     maxRadius=HOUGH_MAX_RADIUS)
     return (circles, edges)
+
+
+def balls2(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, GAUSSIAN_BLUR, cv2.BORDER_DEFAULT)
+    negative = cv2.bitwise_not(blur)
+    keypoints = detector.detect(negative)
+    return keypoints
+    
+
+    
+
 
 
 def find_edges(frame):
@@ -259,6 +295,33 @@ def draw_balls(circles, frame):
                 thickness,
                 lineType)
 
+def draw_balls2(keypoints, frame):
+    font                   = cv2.FONT_HERSHEY_SIMPLEX
+    bottomLeftCornerOfText = (10,500)
+    fontScale              = 1
+    fontColor              = (255,0,0)
+    thickness              = 3
+    lineType               = 2
+    if keypoints is not None:
+        
+        for point in keypoints:
+            # draw the outer circle
+            x = np.uint16(point.pt[0])
+            y = np.uint16(point.pt[1])
+            radius = int(np.uint16(point.size)/2)
+            
+            
+            cv2.circle(frame, (x,y),radius,(0,255,0),2)
+            # draw the center of the circle
+            cv2.circle(frame,(x,y ),2,(0,0,255),3)
+            cv2.putText(frame,'Ball',
+                (x,y),
+                font,
+                fontScale,
+                fontColor,
+                thickness,
+                lineType)
+
 
 def draw_course(frame):
     global top_left, top_right, bottom_right, bottom_left
@@ -314,12 +377,20 @@ def draw_cross(frame):
 
 
 
-def QR_Reader():
+def QR_Reader(frame, ret):
     qcd = cv2.QRCodeDetector()
-    ret, frame = cap.read()
+
 
     if ret:
         ret_qr, decoded_info, points, _ = qcd.detectAndDecodeMulti(frame)
+        if ret_qr:
+            for s, p in zip(decoded_info, points):
+                if s:
+                    print(s)
+                    color = (0, 255, 0)
+                else:
+                    color = (0, 0, 255)
+                return cv2.polylines(frame, [p.astype(int)], True, color, 8)
       
 
 def start():
@@ -351,7 +422,7 @@ def start():
         current_frame +=1
         # Capture frame-by-frame
         ret, frame = cap.read()
-        QR_Reader()
+        QR_frame = QR_Reader(frame, ret)
         # if frame is read correctly ret is True
         if not ret:
             print("Can't receive frame (stream end?). Exiting ...")
@@ -361,7 +432,8 @@ def start():
         # color space
 
 
-        circles, circle_edges = balls(frame)
+        #circles, circle_edges = balls(frame)
+        keypoints = balls2(frame)
         lines, course_edges, mask_img = find_edges(frame)
 
         ## Only find course during startup, otherwise we expect the course to be static.
@@ -383,12 +455,13 @@ def start():
 
 
 
-        draw_balls(circles, frame)
+        #draw_balls(circles, frame)
+        draw_balls2(keypoints, frame)
         draw_course(frame)
         ##draw_cross(frame)
 
 
-        stack1 = np.concatenate((cv2.cvtColor(circle_edges, cv2.COLOR_GRAY2BGR), frame), axis=0)
+        stack1 = np.concatenate((frame, frame), axis=0)
         stack2 = np.concatenate((frame, mask_img), axis=0)
         stack3 = np.concatenate((stack1, stack2), axis=1)
         cv2.imshow('blur', stack3)
