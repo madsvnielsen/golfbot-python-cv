@@ -8,7 +8,7 @@ import sys
 import math
 
 
-camera_id = 1
+camera_id = 0
 
 window_name = 'OpenCV QR Code'
 

@@ -6,7 +6,7 @@ import threading
 import sys
 import math
 
-
+window_name = "Window Name"
 
 ## BALL DETECTION
 GAUSSIAN_BLUR = (37,37)
@@ -313,6 +313,15 @@ def draw_cross(frame):
     cv2.rectangle(frame, (cross_startX, cross_startY), (cross_endX, cross_endY), (255, 0, 0), 3)
 
 
+
+def QR_Reader():
+    qcd = cv2.QRCodeDetector()
+    ret, frame = cap.read()
+
+    if ret:
+        ret_qr, decoded_info, points, _ = qcd.detectAndDecodeMulti(frame)
+      
+
 def start():
     global FIND_COURSE, CURRENT_FRAME, REFRESH_BOUND_FRAME, top_left, top_right, bottom_right, bottom_left
     cap = cv2.VideoCapture(1)
@@ -342,6 +351,7 @@ def start():
         current_frame +=1
         # Capture frame-by-frame
         ret, frame = cap.read()
+        QR_Reader()
         # if frame is read correctly ret is True
         if not ret:
             print("Can't receive frame (stream end?). Exiting ...")
