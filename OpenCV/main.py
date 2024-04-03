@@ -132,7 +132,7 @@ def monitor_cmd():
         if c == "MAXGAP":
             BOUND_MAXGAP = int(s)
 
-
+'''
 def balls(frame):
 
     lower = np.array([200, 200, 200], dtype='uint8')
@@ -154,7 +154,7 @@ def balls(frame):
     minRadius=HOUGH_MIN_RADIUS,
     maxRadius=HOUGH_MAX_RADIUS)
     return (circles, edges)
-
+'''
 
 def balls2(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -272,6 +272,7 @@ def find_cross(frame):
     cross_endX = cross_startX + template.shape[1]
     cross_endY = cross_startY + template.shape[0]
 
+'''
 ## Draws balls (given by a result of HoughCircles) on a frame
 def draw_balls(circles, frame):
     font                   = cv2.FONT_HERSHEY_SIMPLEX
@@ -294,7 +295,7 @@ def draw_balls(circles, frame):
                 fontColor,
                 thickness,
                 lineType)
-
+'''
 def draw_balls2(keypoints, frame):
     font                   = cv2.FONT_HERSHEY_SIMPLEX
     bottomLeftCornerOfText = (10,500)
