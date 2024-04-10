@@ -6,16 +6,33 @@ import threading
 import sys
 import math
 
-
+window_name = "Window Name"
 
 ## BALL DETECTION
-GAUSSIAN_BLUR = (37,37)
+GAUSSIAN_BLUR = (27,27)
 EDGE_CANNY_THRESHOLD = 60
 EDGE_ACCUMULATOR_THRESHOLD = 60
-HOUGH_DP = 3.8
+HOUGH_DP = 2
 HOUGH_MIN_DISTANCE = 50
 HOUGH_MIN_RADIUS = 5
 HOUGH_MAX_RADIUS = 25
+
+
+## BALL DETECTION V2
+params = cv2.SimpleBlobDetector_Params()
+params.minThreshold = 0;
+params.maxThreshold = 200;
+params.filterByArea = True
+params.minArea = 250
+params.filterByCircularity = True
+params.minCircularity = 0.25
+params.filterByConvexity = True
+params.minConvexity = 0.87 
+params.filterByInertia = True
+params.minInertiaRatio = 0.5
+
+#detector = cv2.SimpleBlobDetector_create(params)
+detector = cv2.SimpleBlobDetector_create(params)
 
 ## BOUNDARY DETECTION
 BOUND_DP = 10
@@ -115,10 +132,17 @@ def monitor_cmd():
         if c == "MAXGAP":
             BOUND_MAXGAP = int(s)
 
-
+'''
 def balls(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    lower = np.array([200, 200, 200], dtype='uint8')
+    upper = np.array([255, 255, 255], dtype='uint8')
+
+    mask = cv2.inRange(frame, lower, upper)
+    img = cv2.bitwise_and(frame, frame, mask = mask)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     hist = cv2.GaussianBlur(gray, GAUSSIAN_BLUR, cv2.BORDER_DEFAULT)
+    
     blurred = hist#cv2.equalizeHist(hist)
 
     edges = cv2.Canny(blurred,EDGE_CANNY_THRESHOLD,EDGE_ACCUMULATOR_THRESHOLD)
@@ -130,6 +154,18 @@ def balls(frame):
     minRadius=HOUGH_MIN_RADIUS,
     maxRadius=HOUGH_MAX_RADIUS)
     return (circles, edges)
+'''
+
+def balls2(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, GAUSSIAN_BLUR, cv2.BORDER_DEFAULT)
+    negative = cv2.bitwise_not(blur)
+    keypoints = detector.detect(negative)
+    return keypoints
+    
+
+    
+
 
 
 def find_edges(frame):
@@ -151,34 +187,47 @@ def find_edges(frame):
             )
     return lines, edges, img
 
+
 def update_course_edges(lines, horizontal_center, vertical_center):
     if lines is not None:
 
-
+        ##Idea is to get the corners of the lines that are closes to the edge of the frame
         for points in lines:
             x1,y1,x2,y2=points[0]
             delta_y = y2-y1
             delta_x = x2-x1
             slope = math.atan2(delta_y, delta_x)
-
             slope_type = "Unknown"
 
+            ## Use the slope of the lines to determine if its vertical or horizontal
+            ## Change the y-coordinates of the course corners if they are further towards
+            ## the edge of the frame than the current lines.
 
             ## Is line vertical?
             if 1.3 < abs(slope) < 1.6:
-
                 start_x, start_y = x1, y1
+
+                ## Make sure that the start of the line is the point with smallest y
                 end_x, end_y = x2, y2
                 if y2 < y1:
                     start_x, start_y = x2, y2
                     end_x, end_y = x1, y1
 
+                ## If the start of the line is further to the left than the horizontal center,
+                ## the line is a 'Left' line.
                 if start_x <  horizontal_center:
                     slope_type = "Left"
+
+                    ## If the y position of the start of the line is above the middle,
+                    ## update the perceived top left corner of the course. Change the
+                    ## bottom left if otherwise, as the line is below the middle
                     if start_y < top_left[1]:
                         top_left[1] = start_y   # top_left y
                     if end_y > bottom_left[1]:
                         bottom_left[1] = end_y  # bottem_left y
+
+                        ## Do the same with the lines that are to the right of the horizontal_center, but
+                        ## update top right and bottom right instead
                 else:
                     slope_type = "Right"
                     if start_y < top_right[1]:
@@ -187,9 +236,13 @@ def update_course_edges(lines, horizontal_center, vertical_center):
                         bottom_right[1] = end_y # bottom right y
 
             ## Is line horizontal?
+            ## Much like the previous section, the line is registered as being horizontal if the slope is
+            ## between a certain interval. Then it is checked wether it is in the top or bottom depending on its
+            ## y coordinates. Afterwards it is checked wether wether is it right or left and the corners' x values updated
             if -0.5 < slope < 0.5:
                 start_x, start_y = x1, y1
                 end_x, end_y = x2, y2
+                ## Make sure that the start of the line is the point with smallest x
                 if x2 < x1:
                     start_x, start_y = x2, y2
                     end_x, end_y = x1, y1
@@ -207,7 +260,7 @@ def update_course_edges(lines, horizontal_center, vertical_center):
                     if end_x > bottom_right[0]:
                         bottom_right[0] = end_x # bottom right x
 
-
+## Finds the cross on the field via simple template matching
 def find_cross(frame):
     global template, cross_startX, cross_startY, cross_endX, cross_endY
     imageGray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -219,10 +272,8 @@ def find_cross(frame):
     cross_endX = cross_startX + template.shape[1]
     cross_endY = cross_startY + template.shape[0]
 
-
-
-
-
+'''
+## Draws balls (given by a result of HoughCircles) on a frame
 def draw_balls(circles, frame):
     font                   = cv2.FONT_HERSHEY_SIMPLEX
     bottomLeftCornerOfText = (10,500)
@@ -239,6 +290,33 @@ def draw_balls(circles, frame):
             cv2.circle(frame,(i[0],i[1]),2,(0,0,255),3)
             cv2.putText(frame,'Ball',
                 (i[0],i[1]),
+                font,
+                fontScale,
+                fontColor,
+                thickness,
+                lineType)
+'''
+def draw_balls2(keypoints, frame):
+    font                   = cv2.FONT_HERSHEY_SIMPLEX
+    bottomLeftCornerOfText = (10,500)
+    fontScale              = 1
+    fontColor              = (255,0,0)
+    thickness              = 3
+    lineType               = 2
+    if keypoints is not None:
+        
+        for point in keypoints:
+            # draw the outer circle
+            x = np.uint16(point.pt[0])
+            y = np.uint16(point.pt[1])
+            radius = int(np.uint16(point.size)/2)
+            
+            
+            cv2.circle(frame, (x,y),radius,(0,255,0),2)
+            # draw the center of the circle
+            cv2.circle(frame,(x,y ),2,(0,0,255),3)
+            cv2.putText(frame,'Ball',
+                (x,y),
                 font,
                 fontScale,
                 fontColor,
@@ -299,9 +377,26 @@ def draw_cross(frame):
     cv2.rectangle(frame, (cross_startX, cross_startY), (cross_endX, cross_endY), (255, 0, 0), 3)
 
 
+
+def QR_Reader(frame, ret):
+    qcd = cv2.QRCodeDetector()
+
+
+    if ret:
+        ret_qr, decoded_info, points, _ = qcd.detectAndDecodeMulti(frame)
+        if ret_qr:
+            for s, p in zip(decoded_info, points):
+                if s:
+                    print(s)
+                    color = (0, 255, 0)
+                else:
+                    color = (0, 0, 255)
+                return cv2.polylines(frame, [p.astype(int)], True, color, 8)
+      
+
 def start():
     global FIND_COURSE, CURRENT_FRAME, REFRESH_BOUND_FRAME, top_left, top_right, bottom_right, bottom_left
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
     font                   = cv2.FONT_HERSHEY_SIMPLEX
     bottomLeftCornerOfText = (10,500)
     fontScale              = 1
@@ -313,6 +408,7 @@ def start():
 
     vertical_center = int(frame.shape[0]/2)
     horizontal_center = int(frame.shape[1]/2)
+    ##Initialize the course corner-coordinates to be in the center of the frame.
     top_left = [horizontal_center, vertical_center]
     top_right  = [horizontal_center, vertical_center]
     bottom_left  = [horizontal_center, vertical_center]
@@ -327,6 +423,7 @@ def start():
         current_frame +=1
         # Capture frame-by-frame
         ret, frame = cap.read()
+        QR_frame = QR_Reader(frame, ret)
         # if frame is read correctly ret is True
         if not ret:
             print("Can't receive frame (stream end?). Exiting ...")
@@ -336,11 +433,14 @@ def start():
         # color space
 
 
-        circles, circle_edges = balls(frame)
+        #circles, circle_edges = balls(frame)
+        keypoints = balls2(frame)
         lines, course_edges, mask_img = find_edges(frame)
+
+        ## Only find course during startup, otherwise we expect the course to be static.
         if FIND_COURSE:
             update_course_edges(lines, horizontal_center, vertical_center)
-            find_cross(frame)
+            ##find_cross(frame)
             cv2.putText(frame,'FINDING COURSE BOUNDARIES',
                 [horizontal_center, vertical_center],
                 font,
@@ -356,12 +456,13 @@ def start():
 
 
 
-        draw_balls(circles, frame)
+        #draw_balls(circles, frame)
+        draw_balls2(keypoints, frame)
         draw_course(frame)
-        draw_cross(frame)
+        ##draw_cross(frame)
 
 
-        stack1 = np.concatenate((cv2.cvtColor(circle_edges, cv2.COLOR_GRAY2BGR), frame), axis=0)
+        stack1 = np.concatenate((frame, frame), axis=0)
         stack2 = np.concatenate((frame, mask_img), axis=0)
         stack3 = np.concatenate((stack1, stack2), axis=1)
         cv2.imshow('blur', stack3)
