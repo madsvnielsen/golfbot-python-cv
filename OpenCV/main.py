@@ -24,13 +24,13 @@ params.minThreshold = 0
 params.maxThreshold = 200
 params.filterByArea = True
 ##params.minArea = 110
-params.maxArea = 130
+params.maxArea = 500
 params.filterByCircularity = True
-params.minCircularity = 0.25
+params.minCircularity = 0.4
 params.filterByConvexity = True
 params.minConvexity = 0.87 
-params.filterByInertia = True
-params.minInertiaRatio = 0.8
+params.filterByInertia = False
+params.maxInertiaRatio = 0.5
 
 detector = cv2.SimpleBlobDetector_create(params)
 
@@ -39,13 +39,14 @@ attrib = cv2.SimpleBlobDetector_Params()
 attrib.minThreshold = 0
 attrib.maxThreshold = 200
 attrib.filterByArea = True
-attrib.minArea = 200
+attrib.minArea = 2600
 attrib.filterByCircularity = True
 attrib.minCircularity = 0.25
+
 attrib.filterByConvexity = True
 attrib.minConvexity = 0.87
 attrib.filterByInertia = True
-attrib.minInertiaRatio = 0.1
+attrib.minInertiaRatio = 0.55
 detection = cv2.SimpleBlobDetector_create(attrib)
 
 ## BOUNDARY DETECTION
@@ -440,7 +441,7 @@ def QR_Reader(frame, ret):
 
 def start():
     global FIND_COURSE, CURRENT_FRAME, REFRESH_BOUND_FRAME, top_left, top_right, bottom_right, bottom_left
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
     font                   = cv2.FONT_HERSHEY_SIMPLEX
     bottomLeftCornerOfText = (10,500)
     fontScale              = 1
@@ -506,14 +507,14 @@ def start():
         centerPoint = bigEgg(frame)
         draw_eggs(centerPoint,frame)
         draw_balls2(keypoints, frame)
-        ##draw_course(frame)
-        ##draw_cross(frame)
+        draw_course(frame)
+        draw_cross(frame)
 
 
         stack1 = np.concatenate((frame, frame), axis=0)
         stack2 = np.concatenate((frame, mask_img), axis=0)
         stack3 = np.concatenate((stack1, stack2), axis=1)
-        cv2.imshow('blur', frame)
+        cv2.imshow('blur', stack3)
 
         if cv2.waitKey(1) == ord('q'):
             break
