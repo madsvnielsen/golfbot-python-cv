@@ -242,5 +242,5 @@ class CVInterface:
 inter = CVInterface(0)
 print(inter.get_robot_position_and_rotation())
 print(inter.get_ball_positions())
-print(inter.get_course_boundary())
+print(inter.get_course_boundary()[])
 '''
