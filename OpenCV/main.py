@@ -32,8 +32,22 @@ params.filterByConvexity = True
 params.minConvexity = 0.87 
 params.filterByInertia = False
 params.maxInertiaRatio = 0.5
-
 detector = cv2.SimpleBlobDetector_create(params)
+
+
+## ROBOT ORIGIN DETECTION
+rparams = cv2.SimpleBlobDetector_Params()
+rparams.minThreshold = 0
+rparams.maxThreshold = 200
+rparams.filterByCircularity = True
+rparams.filterByArea = True
+rparams.minArea = 110
+rparams.minCircularity = 0.4
+rparams.filterByConvexity = True
+rparams.minConvexity = 0.87 
+rparams.filterByInertia = False
+rparams.maxInertiaRatio = 0.5
+rdetector = cv2.SimpleBlobDetector_create(rparams)
 
 ## EGG DETECTION
 attrib = cv2.SimpleBlobDetector_Params()
@@ -208,19 +222,30 @@ def find_edges(frame):
     return lines, edges, img
 
 def find_robot_origin(frame):
-    lower = np.array([100, 209, 73], dtype='uint8')
-    upper = np.array([180, 255, 189], dtype='uint8')
-    mask = cv2.inRange(frame, lower, upper)
-    img = cv2.bitwise_and(frame, frame, mask = mask)
-    return img
+    lower = np.array([40, 10, 125], dtype='uint8')
+    upper = np.array([70, 255, 255], dtype='uint8')
+    hsvIm = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsvIm, lower, upper)
+    img = cv2.bitwise_and(hsvIm, hsvIm, mask = mask)
+    orimg = cv2.cvtColor(img, cv2.COLOR_HSV2BGR)
+    gray = cv2.cvtColor(orimg, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, GAUSSIAN_BLUR, cv2.BORDER_DEFAULT)
+    negative = cv2.bitwise_not(blur)
+    keypoints = rdetector.detect(negative)
+    return keypoints
 
 def find_robot_direction(frame):
-    lower = np.array([200, 200, 100], dtype='uint8')
-
-    upper = np.array([255, 255, 255], dtype='uint8')
-    mask = cv2.inRange(frame, lower, upper)
-    img = cv2.bitwise_and(frame, frame, mask = mask)
-    return img
+    lower = np.array([137, 10, 125], dtype='uint8')
+    upper = np.array([170, 255, 255], dtype='uint8')
+    hsvIm = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsvIm, lower, upper)
+    img = cv2.bitwise_and(hsvIm, hsvIm, mask = mask)
+    orimg = cv2.cvtColor(img, cv2.COLOR_HSV2BGR)
+    gray = cv2.cvtColor(orimg, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, GAUSSIAN_BLUR, cv2.BORDER_DEFAULT)
+    negative = cv2.bitwise_not(blur)
+    keypoints = rdetector.detect(negative)
+    return keypoints
     
 
 
@@ -458,14 +483,14 @@ def QR_Reader(frame, ret):
 
 def start():
     global FIND_COURSE, CURRENT_FRAME, REFRESH_BOUND_FRAME, top_left, top_right, bottom_right, bottom_left
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
     font                   = cv2.FONT_HERSHEY_SIMPLEX
     bottomLeftCornerOfText = (10,500)
     fontScale              = 1
     fontColor              = (255,0,0)
     thickness              = 3
     lineType               = 2
-
+    
     ret, frame = cap.read()
 
     vertical_center = int(frame.shape[0]/2)
@@ -497,7 +522,7 @@ def start():
 
         #circles, circle_edges = balls(frame)
         keypoints = balls2(frame)
-        centerPoint = bigEgg(frame)
+        #centerPoint = bigEgg(frame)
         lines, course_edges, mask_img = find_edges(frame)
 
         ## Only find course during startup, otherwise we expect the course to be static.
@@ -514,28 +539,54 @@ def start():
             if current_frame > REFRESH_BOUND_FRAME:
                 FIND_COURSE = False
 
-            yield {'balls': keypoints,
-                   }
-
-
 
 
         #draw_balls(circles, frame)
-        green_mask = find_robot_origin(frame)
-        orange_mask = find_robot_direction(frame)
-        
+        origin = find_robot_origin(frame)
+        dir_vector = find_robot_direction(frame)
+        if origin is not None:
+            for p in origin:
+                x = np.uint16(p.pt[0])
+                y = np.uint16(p.pt[1])
+                radius = int(np.uint16(p.size)/2)
+                cv2.circle(frame, (x,y),radius,(0,255,0),2)
+                cv2.circle(frame,(x,y ),2,(0,0,255),3)
+                cv2.putText(frame,'Robot center',
+                    (x,y),
+                    font,
+                    fontScale,
+                    fontColor,
+                    thickness,
+                    lineType)
+                break
+        if dir_vector is not None:
+            for p in dir_vector:
+                x = np.uint16(p.pt[0])
+                y = np.uint16(p.pt[1])
+                radius = int(np.uint16(p.size)/2)
+                cv2.circle(frame, (x,y),radius,(0,255,0),2)
+                cv2.circle(frame,(x,y ),2,(0,0,255),3)
+                cv2.putText(frame,'Robot direction',
+                    (x,y),
+                    font,
+                    fontScale,
+                    fontColor,
+                    thickness,
+                    lineType)
+                break
+    
 
-        centerPoint = bigEgg(frame)
-        draw_eggs(centerPoint,frame)
+        #centerPoint = bigEgg(frame)
+        #draw_eggs(centerPoint,frame)
         draw_balls2(keypoints, frame)
-        draw_course(frame)
-        draw_cross(frame)
+        #draw_course(frame)
+        #draw_cross(frame)
 
         
 
 
-        stack1 = np.concatenate((frame, orange_mask), axis=0)
-        stack2 = np.concatenate((frame, mask_img), axis=0)
+        stack1 = np.concatenate((frame, frame), axis=0)
+        stack2 = np.concatenate((frame, frame), axis=0)
         stack3 = np.concatenate((stack1, stack2), axis=1)
         cv2.imshow('blur', stack3)
 
@@ -546,5 +597,9 @@ def start():
     cv2.destroyAllWindows()
 
 
-threading.Thread(target=monitor_cmd).start()
+
 start()
+
+
+
+
