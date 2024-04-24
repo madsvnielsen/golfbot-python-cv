@@ -21,19 +21,34 @@ HOUGH_MAX_RADIUS = 25
 
 ## BALL DETECTION V2
 params = cv2.SimpleBlobDetector_Params()
-params.minThreshold = 0;
-params.maxThreshold = 200;
+params.minThreshold = 0
+params.maxThreshold = 200
 params.filterByArea = True
-params.minArea = 250
+##params.minArea = 110
+params.maxArea = 500
 params.filterByCircularity = True
-params.minCircularity = 0.25
+params.minCircularity = 0.4
 params.filterByConvexity = True
 params.minConvexity = 0.87 
-params.filterByInertia = True
-params.minInertiaRatio = 0.5
+params.filterByInertia = False
+params.maxInertiaRatio = 0.5
 
-#detector = cv2.SimpleBlobDetector_create(params)
 detector = cv2.SimpleBlobDetector_create(params)
+
+## EGG DETECTION
+attrib = cv2.SimpleBlobDetector_Params()
+attrib.minThreshold = 0
+attrib.maxThreshold = 200
+attrib.filterByArea = True
+attrib.minArea = 2600
+attrib.filterByCircularity = True
+attrib.minCircularity = 0.25
+
+attrib.filterByConvexity = True
+attrib.minConvexity = 0.87
+attrib.filterByInertia = True
+attrib.minInertiaRatio = 0.55
+detection = cv2.SimpleBlobDetector_create(attrib)
 
 ## BOUNDARY DETECTION
 BOUND_DP = 10
@@ -48,8 +63,8 @@ FIND_COURSE = True
 
 
 top_left = [0,0]
-top_right  = [0,0]
-bottom_left  = [0,0]
+top_right = [0,0]
+bottom_left = [0,0]
 bottom_right = [0,0]
 
 
@@ -163,10 +178,14 @@ def balls2(frame):
     negative = cv2.bitwise_not(blur)
     keypoints = detector.detect(negative)
     return keypoints
-    
 
-    
-
+## Egg recognition
+def bigEgg(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, GAUSSIAN_BLUR, cv2.BORDER_DEFAULT)
+    negative = cv2.bitwise_not(blur)
+    centerPoint = detection.detect(negative)
+    return centerPoint
 
 
 def find_edges(frame):
@@ -325,6 +344,32 @@ def draw_balls2(keypoints, frame):
                 lineType)
 
 
+def draw_eggs(keypoints, frame):
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    bottomLeftCornerOfText = (10, 500)
+    fontScale = 1
+    fontColor = (255, 0, 0)
+    thickness = 3
+    lineType = 2
+    if keypoints is not None:
+
+        for point in keypoints:
+            # draw the outer circle
+            x = np.uint16(point.pt[0])
+            y = np.uint16(point.pt[1])
+            radius = int(np.uint16(point.size) / 2)
+
+            cv2.circle(frame, (x, y), radius, (255, 0, 0), 2)
+            # draw the center of the circle
+            cv2.circle(frame, (x, y), 2, (0, 0, 255), 3)
+            cv2.putText(frame, 'egg',
+                        (x, y),
+                        font,
+                        fontScale,
+                        fontColor,
+                        thickness,
+                        lineType)
+
 def draw_course(frame):
     global top_left, top_right, bottom_right, bottom_left
     font                   = cv2.FONT_HERSHEY_SIMPLEX
@@ -436,6 +481,7 @@ def start():
 
         #circles, circle_edges = balls(frame)
         keypoints = balls2(frame)
+        centerPoint = bigEgg(frame)
         lines, course_edges, mask_img = find_edges(frame)
 
         ## Only find course during startup, otherwise we expect the course to be static.
@@ -459,9 +505,12 @@ def start():
 
 
         #draw_balls(circles, frame)
+
+        centerPoint = bigEgg(frame)
+        draw_eggs(centerPoint,frame)
         draw_balls2(keypoints, frame)
         draw_course(frame)
-        ##draw_cross(frame)
+        draw_cross(frame)
 
 
         stack1 = np.concatenate((frame, frame), axis=0)
