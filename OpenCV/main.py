@@ -5,6 +5,7 @@ from imutils.video import VideoStream
 import threading
 import sys
 import math
+import socket
 
 window_name = "Window Name"
 
@@ -451,7 +452,8 @@ def start():
             if current_frame > REFRESH_BOUND_FRAME:
                 FIND_COURSE = False
 
-
+            yield {'balls': keypoints,
+                   }
 
 
 

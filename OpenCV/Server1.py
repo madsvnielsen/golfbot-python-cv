@@ -20,7 +20,7 @@ def send_key_input(key, client_socket):
     except Exception as e:
         print("Error sending key input:", e)
 
-def clientHandler(client_socket):
+def clientHandler(client_socket,command):
     while True:
         num = random.random()
         if num <= 0.2:
