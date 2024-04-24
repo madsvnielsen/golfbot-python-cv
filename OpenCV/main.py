@@ -206,6 +206,22 @@ def find_edges(frame):
             )
     return lines, edges, img
 
+def find_robot_origin(frame):
+    lower = np.array([100, 209, 73], dtype='uint8')
+    upper = np.array([180, 255, 189], dtype='uint8')
+    mask = cv2.inRange(frame, lower, upper)
+    img = cv2.bitwise_and(frame, frame, mask = mask)
+    return img
+
+def find_robot_direction(frame):
+    lower = np.array([200, 200, 100], dtype='uint8')
+
+    upper = np.array([255, 255, 255], dtype='uint8')
+    mask = cv2.inRange(frame, lower, upper)
+    img = cv2.bitwise_and(frame, frame, mask = mask)
+    return img
+    
+
 
 def update_course_edges(lines, horizontal_center, vertical_center):
     if lines is not None:
@@ -503,6 +519,9 @@ def start():
 
 
         #draw_balls(circles, frame)
+        green_mask = find_robot_origin(frame)
+        orange_mask = find_robot_direction(frame)
+        
 
         centerPoint = bigEgg(frame)
         draw_eggs(centerPoint,frame)
@@ -510,8 +529,10 @@ def start():
         draw_course(frame)
         draw_cross(frame)
 
+        
 
-        stack1 = np.concatenate((frame, frame), axis=0)
+
+        stack1 = np.concatenate((frame, orange_mask), axis=0)
         stack2 = np.concatenate((frame, mask_img), axis=0)
         stack3 = np.concatenate((stack1, stack2), axis=1)
         cv2.imshow('blur', stack3)
