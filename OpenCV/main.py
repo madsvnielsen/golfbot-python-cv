@@ -70,7 +70,6 @@ BOUND_ANGLE_RES = np.pi/180
 BOUND_THRESH = 30
 BOUND_MINLEN = 50
 BOUND_MAXGAP = 5
-
 REFRESH_BOUND_FRAME = 20
 CURRENT_FRAME = 0
 FIND_COURSE = True
@@ -251,7 +250,6 @@ def find_robot_direction(frame):
 
 def update_course_edges(lines, horizontal_center, vertical_center):
     if lines is not None:
-
         ##Idea is to get the corners of the lines that are closes to the edge of the frame
         for points in lines:
             x1,y1,x2,y2=points[0]
