@@ -73,13 +73,13 @@ def start():
     vector_to_closest_coordinate = (closest_coordinate[0] - robotcenter[0], closest_coordinate[1] - robotcenter[1])
 
     #calculate angle to turn
-    angle_to_turn = angle_between((math.cos(robotDir), math.sin(robotDir)), vector_to_closest_coordinate)
+    angle_to_turn = angle_between((math.cos(robotDir[1]), math.sin(robotDir[1])), vector_to_closest_coordinate)
     if angle_to_turn > 180:
-        Server1.clientHandler("left")
+        Server1.recvCommand("left")
     elif 0 < angle_to_turn < 180:
-        Server1.clientHandler("right")
+        Server1.recvCommand("right")
     elif angle_to_turn==0:
-        Server1.clientHandler("forward")
+        Server1.recvCommand("forward")
     start_generator=main.start()
 
     for keypoints in start_generator:
@@ -87,5 +87,5 @@ def start():
         print('cordinates'+balls)
 
     robot=cv2.KeyPoint(100, 200, _size=10, _angle=0, _response=0, _octave=0, _class_id=-1)
-    Server1.clientHandler()
+
 
