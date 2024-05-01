@@ -17,7 +17,7 @@ class CVInterface:
     __BOUND_THRESH = 30
     __BOUND_MINLEN = 50
     __BOUND_MAXGAP = 5
-    __REFRESH_BOUND_FRAME = 20
+    __REFRESH_BOUND_FRAME = 100
   
     """
     A class defining methods for computer vision functionalities.
@@ -26,7 +26,7 @@ class CVInterface:
         self.video_capture_device = video_capture_device
         self.__init_ball_detector()
         self.__init_robot_detector()
-        self.__capture_device = cv2.VideoCapture(0)
+        self.__capture_device = cv2.VideoCapture(1)
 
     def __init_ball_detector(self):
         ## SETTINGS FOR BALL DETECTIONS

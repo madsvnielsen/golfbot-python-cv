@@ -481,7 +481,7 @@ def QR_Reader(frame, ret):
 
 def start():
     global FIND_COURSE, CURRENT_FRAME, REFRESH_BOUND_FRAME, top_left, top_right, bottom_right, bottom_left
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
     font                   = cv2.FONT_HERSHEY_SIMPLEX
     bottomLeftCornerOfText = (10,500)
     fontScale              = 1
@@ -577,7 +577,7 @@ def start():
         #centerPoint = bigEgg(frame)
         #draw_eggs(centerPoint,frame)
         draw_balls2(keypoints, frame)
-        #draw_course(frame)
+        draw_course(frame)
         #draw_cross(frame)
 
         
