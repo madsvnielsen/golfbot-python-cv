@@ -102,9 +102,9 @@ def start():
         turn_in_seconds = abs((angle_to_turn/90)*0.85)
         
         if 3 < angle_to_turn < 180:
-            server.send_key_input("left " + str(turn_in_seconds))
+            server.send_key_input("left " + str(turn_in_seconds)+ "\n")
         elif -3 > angle_to_turn > -179:
-            server.send_key_input("right " + str(turn_in_seconds))
+            server.send_key_input("right " + str(turn_in_seconds)+ "\n")
         elif abs(angle_to_turn)<3:
             server.send_key_input("forward")
         sleep(0.5)
