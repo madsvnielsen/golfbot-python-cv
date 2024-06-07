@@ -99,12 +99,13 @@ def start():
         #calculate angle to turn
         angle_to_turn = angle_between((robotDir), vector_to_active_target)
         print(angle_to_turn)
+        turn_in_seconds = abs((angle_to_turn/90)*0.85)
         
-        if 5 < angle_to_turn < 180:
-            server.send_key_input("left")
-        elif -5 > angle_to_turn > -179:
-            server.send_key_input("right")
-        elif abs(angle_to_turn)<5:
+        if 3 < angle_to_turn < 180:
+            server.send_key_input("left " + str(turn_in_seconds))
+        elif -3 > angle_to_turn > -179:
+            server.send_key_input("right " + str(turn_in_seconds))
+        elif abs(angle_to_turn)<3:
             server.send_key_input("forward")
         sleep(0.5)
         '''
