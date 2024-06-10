@@ -11,6 +11,14 @@ class CVInterface:
     
     __gaussian_blur = (27,27)
 
+    robot = None
+    ball_pos = []
+    target_pos = None
+    top_left = (0,0)
+    top_right = (0,0)
+    bottom_left = (0,0)
+    bottom_right = (0,0)
+
 ## BOUNDARY DETECTION
     __BOUND_DP = 10
     __BOUND_ANGLE_RES = np.pi/180
@@ -59,9 +67,22 @@ class CVInterface:
         rparams.maxInertiaRatio = 0.5
         self.__robot_detector = cv2.SimpleBlobDetector_create(rparams)
 
+    def __cap_frame(self):
+        _, frame = self.__capture_device.read()
+
+        self.__draw_balls(self.ball_pos, frame)
+        self.__draw_course(frame)
+        self.__draw_robot(frame)
+
+        self.__draw_target(frame)
+        cv2.imshow('Frame', frame)
+        if cv2.waitKey(1) == ord('q'):
+            cv2.destroyAllWindows()
+        return frame
+
     def __find_robot_origin(self, frame):
         lower = np.array([40, 10, 125], dtype='uint8')
-        upper = np.array([70, 255, 255], dtype='uint8')
+        upper = np.array([120, 255, 255], dtype='uint8')
         hsvIm = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsvIm, lower, upper)
         img = cv2.bitwise_and(hsvIm, hsvIm, mask = mask)
@@ -103,38 +124,180 @@ class CVInterface:
                 )
         return lines
 
-  
+
+    def __draw_balls(self, keypoints, frame):
+        font                   = cv2.FONT_HERSHEY_SIMPLEX
+        fontScale              = 1
+        fontColor              = (255,0,0)
+        thickness              = 3
+        lineType               = 2
+        if keypoints is not None:
+            
+            for point in keypoints:
+                # draw the outer circle
+                x = np.uint16(point.pt[0])
+                y = np.uint16(point.pt[1])
+                radius = int(np.uint16(point.size)/2)
+                
+                
+                cv2.circle(frame, (x,y),radius,(0,255,0),2)
+                # draw the center of the circle
+                cv2.circle(frame,(x,y ),2,(0,0,255),3)
+                cv2.putText(frame,'Ball',
+                    (x,y),
+                    font,
+                    fontScale,
+                    fontColor,
+                    thickness,
+                    lineType)
+                
+    def __draw_target(self,frame):
+        font                   = cv2.FONT_HERSHEY_SIMPLEX
+        fontScale              = 1
+        fontColor              = (255,0,0)
+        thickness              = 3
+        lineType               = 2
+        if self.target_pos is not None:
+        
+            x = np.uint16(self.target_pos[0])
+            y = np.uint16(self.target_pos[1])
+            radius = int(5)
+            
+            
+            cv2.circle(frame, (x,y),radius,(255,0,0),2)
+            # draw the center of the circle
+            cv2.circle(frame,(x,y ),2,(255,0,0),3)
+            cv2.putText(frame,'Target',
+                (x,y),
+                font,
+                fontScale,
+                fontColor,
+                thickness,
+                lineType)
+                
+    def __draw_course(self, frame):
+        font                   = cv2.FONT_HERSHEY_SIMPLEX
+        bottomLeftCornerOfText = (10,500)
+        fontScale              = 1
+        fontColor              = (255,0,0)
+        thickness              = 3
+        lineType               = 2
+        cv2.putText(frame,'Bottom left: ' + str(self.bottom_left),
+            (self.bottom_left[0],self.bottom_left[1]),
+            font,
+            fontScale,
+            fontColor,
+            thickness,
+            lineType)
+
+
+        cv2.putText(frame,'Bottom right: ' + str(self.bottom_right),
+            (self.bottom_right[0], self.bottom_right[1]),
+            font,
+            fontScale,
+            fontColor,
+            thickness,
+            lineType)
+
+
+        cv2.putText(frame,'Top right: ' + str(self.top_right),
+            (self.top_right[0], self.top_right[1]),
+            font,
+            fontScale,
+            fontColor,
+            thickness,
+            lineType)
+
+
+        cv2.putText(frame,'top_left: ' + str(self.top_left),
+            (self.top_left[0], self.top_left[1]),
+            font,
+            fontScale,
+            fontColor,
+            thickness,
+            lineType)
+        cv2.line(frame,(self.top_left[0], self.top_left[1]),(self.top_right[0], self.top_right[1]),(0,255,0),5)
+        cv2.line(frame,(self.bottom_left[0], self.bottom_left[1]),(self.bottom_right[0], self.bottom_right[1]),(0,255,0),5)
+        cv2.line(frame,(self.bottom_left[0], self.bottom_left[1]),(self.top_left[0], self.top_left[1]),(0,255,0),5)
+        cv2.line(frame,(self.top_right[0], self.top_right[1]),(self.bottom_right[0], self.bottom_right[1]),(0,255,0),5)
+    
+    def __draw_robot(self, frame):
+
+        if(self.robot is None):
+            return
+        
+        origin = self.robot["origin"]
+        dir_vector = self.robot["direction"]
+
+        font                   = cv2.FONT_HERSHEY_SIMPLEX
+        bottomLeftCornerOfText = (10,500)
+        fontScale              = 1
+        fontColor              = (255,0,0)
+        thickness              = 3
+        lineType               = 2
+
+        if origin is not None:
+            p = origin 
+            x = np.uint16(p.pt[0])
+            y = np.uint16(p.pt[1])
+            radius = int(np.uint16(p.size)/2)
+            cv2.circle(frame, (x,y),radius,(0,255,0),2)
+            cv2.circle(frame,(x,y ),2,(0,0,255),3)
+            cv2.putText(frame,'Robot center',
+                (x,y),
+                font,
+                fontScale,
+                fontColor,
+                thickness,
+                lineType)
+        if dir_vector is not None:
+            p = dir_vector
+            x = np.uint16(p.pt[0])
+            y = np.uint16(p.pt[1])
+            radius = int(np.uint16(p.size)/2)
+            cv2.circle(frame, (x,y),radius,(0,255,0),2)
+            cv2.circle(frame,(x,y ),2,(0,0,255),3)
+            cv2.putText(frame,'Robot direction',
+                (x,y),
+                font,
+                fontScale,
+                fontColor,
+                thickness,
+                lineType)
+
     def get_robot_position_and_rotation(self):
-        _, frame = self.__capture_device.read()
+        frame = self.__cap_frame()
         robot_origin_candidates = self.__find_robot_origin(frame)
         robot_direction_candidates = self.__find_robot_direction(frame)
-        origin = robot_origin_candidates[0].pt if len(robot_origin_candidates) > 0 else None
-        direction = robot_direction_candidates[0].pt if len(robot_direction_candidates) > 0 else None
-        data = {"origin": origin, "direction": direction}
+        origin = robot_origin_candidates[0] if len(robot_origin_candidates) > 0 else None
+        direction = robot_direction_candidates[0] if len(robot_direction_candidates) > 0 else None
+        data = {"origin": origin.pt if origin is not None else None, "direction": direction.pt if direction is not None else None}
+        self.robot = {"origin": origin, "direction": direction}
         return data
 
 
     def get_ball_positions(self):
-        _, frame = self.__capture_device.read()
+        frame = self.__cap_frame()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         blur = cv2.GaussianBlur(gray, self.__gaussian_blur, cv2.BORDER_DEFAULT)
         negative = cv2.bitwise_not(blur)
         keypoints = self.__ball_detector.detect(negative)
         ball_positions = [(np.uint16(point.pt[0]), np.uint16(point.pt[1])) for point in keypoints]
+        self.ball_pos = keypoints
         return ball_positions
 
 
     def get_course_boundary(self):
-        _, frame = self.__capture_device.read()
+        frame = self.__cap_frame()
         vertical_center = int(frame.shape[0]/2)
         horizontal_center = int(frame.shape[1]/2)
-        top_left = [horizontal_center, vertical_center]
-        top_right  = [horizontal_center, vertical_center]
-        bottom_left  = [horizontal_center, vertical_center]
-        bottom_right = [horizontal_center, vertical_center]
+        self.top_left = [horizontal_center, vertical_center]
+        self.top_right  = [horizontal_center, vertical_center]
+        self.bottom_left  = [horizontal_center, vertical_center]
+        self.bottom_right = [horizontal_center, vertical_center]
     
         for _ in range(self.__REFRESH_BOUND_FRAME):
-            _, frame = self.__capture_device.read()
+            frame = self.__cap_frame()
             lines = self.__find_edges(frame)
             if lines is None:
                 continue
@@ -168,19 +331,19 @@ class CVInterface:
                         ## If the y position of the start of the line is above the middle,
                         ## update the perceived top left corner of the course. Change the
                         ## bottom left if otherwise, as the line is below the middle
-                        if start_y < top_left[1]:
-                            top_left[1] = start_y   # top_left y
-                        if end_y > bottom_left[1]:
-                            bottom_left[1] = end_y  # bottem_left y
+                        if start_y < self.top_left[1]:
+                            self.top_left[1] = start_y   # top_left y
+                        if end_y > self.bottom_left[1]:
+                            self.bottom_left[1] = end_y  # bottem_left y
 
                             ## Do the same with the lines that are to the right of the horizontal_center, but
                             ## update top right and bottom right instead
                     else:
                         slope_type = "Right"
-                        if start_y < top_right[1]:
-                            top_right[1] = start_y  # top right y
-                        if end_y > bottom_right[1]:
-                            bottom_right[1] = end_y # bottom right y
+                        if start_y < self.top_right[1]:
+                            self.top_right[1] = start_y  # top right y
+                        if end_y > self.bottom_right[1]:
+                            self.bottom_right[1] = end_y # bottom right y
 
                 ## Is line horizontal?
                 ## Much like the previous section, the line is registered as being horizontal if the slope is
@@ -196,21 +359,21 @@ class CVInterface:
 
                     if start_y <  vertical_center:
                         slope_type = "Top"
-                        if start_x < top_left[0]:
-                            top_left[0] = start_x # top left x
-                        if end_x > top_right[0]:
-                            top_right[0] = end_x # top right x
+                        if start_x < self.top_left[0]:
+                            self.top_left[0] = start_x # top left x
+                        if end_x > self.top_right[0]:
+                            self.top_right[0] = end_x # top right x
                     else:
                         slope_type = "Bottom"
-                        if start_x < bottom_left[0]:
-                            bottom_left[0] = start_x # bottom left x
-                        if end_x > bottom_right[0]:
-                            bottom_right[0] = end_x # bottom right x
+                        if start_x < self.bottom_left[0]:
+                            self.bottom_left[0] = start_x # bottom left x
+                        if end_x > self.bottom_right[0]:
+                            self.bottom_right[0] = end_x # bottom right x
         return {
-            "top_left": top_left,
-            "top_right": top_right,
-            "bottom_right": bottom_right,
-            "bottom_left": bottom_left,
+            "top_left": self.top_left,
+            "top_right": self.top_right,
+            "bottom_right": self.bottom_right,
+            "bottom_left": self.bottom_left,
         }
                 
 

@@ -222,7 +222,7 @@ def find_edges(frame):
 
 def find_robot_origin(frame):
     lower = np.array([40, 10, 125], dtype='uint8')
-    upper = np.array([70, 255, 255], dtype='uint8')
+    upper = np.array([120, 255, 255], dtype='uint8')
     hsvIm = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsvIm, lower, upper)
     img = cv2.bitwise_and(hsvIm, hsvIm, mask = mask)
