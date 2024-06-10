@@ -31,7 +31,7 @@ class CVInterface:
     __BOUND_THRESH = 30
     __BOUND_MINLEN = 50
     __BOUND_MAXGAP = 5
-    __REFRESH_BOUND_FRAME = 100  ## How many frames should the program analyze when finding the boundary?
+    __REFRESH_BOUND_FRAME = 50  ## How many frames should the program analyze when finding the boundary?
     __boundary_lower_color1 = np.array([0, 10, 125], dtype='uint8') ## Lower bound for color of the edge (HSV)
     __boundary_upper_color1 = np.array([6, 255, 255], dtype='uint8') ## Upper bound for color of the edge (HSV)
     __boundary_lower_color2 = np.array([174, 10, 125], dtype='uint8') ## Lower bound for color of the edge (HSV)
@@ -62,14 +62,14 @@ class CVInterface:
         params.minThreshold = 0      ## Min threshold for when something is accepted as a ball
         params.maxThreshold = 200    ## Max threshold
         params.filterByArea = True   ## Should we use the area of the blobs to filter whether its a ball?
-        ##params.minArea = 110       ## Potential setting for that balls needs to have an area greater than x
+        params.minArea = 200       ## Potential setting for that balls needs to have an area greater than x
         params.maxArea = 500         ## If the blobs area is bigger than this, it will not be detected as a ball
         params.filterByCircularity = True  ## Should we use the circularity to filter?
         params.minCircularity = 0.4        ## Min circularity
         params.filterByConvexity = True    ## Should we use the convexity?
-        params.minConvexity = 0.87        
-        params.filterByInertia = False     ## Should we use inertia?
-        params.maxInertiaRatio = 0.5
+        params.minConvexity = 0.8        
+        params.filterByInertia = True     ## Should we use inertia?
+        params.minInertiaRatio = 0.4
         self.__ball_detector = cv2.SimpleBlobDetector_create(params)
 
     def  __init_robot_detector(self):
@@ -81,7 +81,7 @@ class CVInterface:
         rparams.maxThreshold = 200
         rparams.filterByCircularity = True
         rparams.filterByArea = True
-        rparams.minArea = 110
+        rparams.minArea = 500
         rparams.minCircularity = 0.4
         rparams.filterByConvexity = True
         rparams.minConvexity = 0.87 

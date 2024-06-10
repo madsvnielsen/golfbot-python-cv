@@ -82,6 +82,8 @@ def start():
              if active_target != None:
                 search_mode = False
                 server.send_key_input("start")
+             else:
+                continue
         robotcenter, robotfront, robotDir = getRobotPosition(cv, boundrypixel)
         if robotcenter == None: continue
         vector_to_active_target = (active_target[0] - robotcenter[0], active_target[1] - robotcenter[1])
