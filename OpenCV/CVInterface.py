@@ -9,8 +9,10 @@ import socket
 
 class CVInterface:
     
+    ## How much the image is blurred (to make detection easier)
     __gaussian_blur = (27,27)
 
+    ## Variables for for drawing frames when any of the methods are called.
     robot = None
     ball_pos = []
     target_pos = None
@@ -19,13 +21,17 @@ class CVInterface:
     bottom_left = (0,0)
     bottom_right = (0,0)
 
-## BOUNDARY DETECTION
+## BOUNDARY DETECTION (for detecting edges)
+    ##All BOUND_X variables are parameters for the HoughLines detector. 
+    ## See openCV documentation for what they mean
     __BOUND_DP = 10
     __BOUND_ANGLE_RES = np.pi/180
     __BOUND_THRESH = 30
     __BOUND_MINLEN = 50
     __BOUND_MAXGAP = 5
-    __REFRESH_BOUND_FRAME = 100
+    __REFRESH_BOUND_FRAME = 100  ## How many frames should the program analyze when finding the boundary?
+    __boundary_lower_color = np.array([0, 0, 200], dtype='uint8') ## Lower bound for color of the edge (BGR)
+    __boundary_upper_color = np.array([90, 90, 255], dtype='uint8') ## Upper bound for color of the edge (BGR)
   
     """
     A class defining methods for computer vision functionalities.
@@ -34,27 +40,31 @@ class CVInterface:
         self.video_capture_device = video_capture_device
         self.__init_ball_detector()
         self.__init_robot_detector()
-        self.__capture_device = cv2.VideoCapture(1)
+        self.__capture_device = cv2.VideoCapture(1)   ## Target capture device
 
     def __init_ball_detector(self):
         ## SETTINGS FOR BALL DETECTIONS
         params = cv2.SimpleBlobDetector_Params()
-        params.minThreshold = 0
-        params.maxThreshold = 200
-        params.filterByArea = True
-        ##params.minArea = 110
-        params.maxArea = 500
-        params.filterByCircularity = True
-        params.minCircularity = 0.4
-        params.filterByConvexity = True
-        params.minConvexity = 0.87 
-        params.filterByInertia = False
+        ## See this link for explanation of threshold, area, circularity, convexity and intertia
+        ## https://learnopencv.com/blob-detection-using-opencv-python-c/
+        params.minThreshold = 0      ## Min threshold for when something is accepted as a ball
+        params.maxThreshold = 200    ## Max threshold
+        params.filterByArea = True   ## Should we use the area of the blobs to filter whether its a ball?
+        ##params.minArea = 110       ## Potential setting for that balls needs to have an area greater than x
+        params.maxArea = 500         ## If the blobs area is bigger than this, it will not be detected as a ball
+        params.filterByCircularity = True  ## Should we use the circularity to filter?
+        params.minCircularity = 0.4        ## Min circularity
+        params.filterByConvexity = True    ## Should we use the convexity?
+        params.minConvexity = 0.87        
+        params.filterByInertia = False     ## Should we use inertia?
         params.maxInertiaRatio = 0.5
         self.__ball_detector = cv2.SimpleBlobDetector_create(params)
 
     def  __init_robot_detector(self):
         ## SETTINGS FOR ROBOT DETECTIONS
         rparams = cv2.SimpleBlobDetector_Params()
+        ## See this link for explanation of threshold, area, circularity, convexity and intertia
+        ## https://learnopencv.com/blob-detection-using-opencv-python-c/
         rparams.minThreshold = 0
         rparams.maxThreshold = 200
         rparams.filterByCircularity = True
@@ -65,8 +75,12 @@ class CVInterface:
         rparams.minConvexity = 0.87 
         rparams.filterByInertia = False
         rparams.maxInertiaRatio = 0.5
+        ## Upper and lower colors for detection of robot  (ALL IN HSV)
         self.__robot_detector = cv2.SimpleBlobDetector_create(rparams)
-
+        self.__robot_origin_lower_color = np.array([40, 10, 125], dtype='uint8')  #Lower color of center (green cirlcle)
+        self.__robot_origin_upper_color = np.array([120, 255, 255], dtype='uint8') #Upper color of center
+        self.__robot_direction_lower_color = np.array([137, 10, 125], dtype='uint8') #Lower color of direction marker (purple)
+        self.__robot_direction_upper_color = np.array([170, 255, 255], dtype='uint8') #Upper color of direction marker
     def __cap_frame(self):
         _, frame = self.__capture_device.read()
 
@@ -81,8 +95,8 @@ class CVInterface:
         return frame
 
     def __find_robot_origin(self, frame):
-        lower = np.array([40, 10, 125], dtype='uint8')
-        upper = np.array([120, 255, 255], dtype='uint8')
+        lower = self.__robot_origin_lower_color
+        upper = self.__robot_origin_upper_color
         hsvIm = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsvIm, lower, upper)
         img = cv2.bitwise_and(hsvIm, hsvIm, mask = mask)
@@ -94,8 +108,8 @@ class CVInterface:
         return keypoints
 
     def __find_robot_direction(self, frame):
-        lower = np.array([137, 10, 125], dtype='uint8')
-        upper = np.array([170, 255, 255], dtype='uint8')
+        lower = self.__robot_direction_lower_color
+        upper = self.__robot_direction_upper_color
         hsvIm = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsvIm, lower, upper)
         img = cv2.bitwise_and(hsvIm, hsvIm, mask = mask)
@@ -108,8 +122,8 @@ class CVInterface:
         return keypoints
 
     def __find_edges(self, frame):
-        lower = np.array([0, 0, 200], dtype='uint8')
-        upper = np.array([90, 90, 255], dtype='uint8')
+        lower = self.__boundary_lower_color
+        upper = self.__boundary_upper_color
         mask = cv2.inRange(frame, lower, upper)
         img = cv2.bitwise_and(frame, frame, mask = mask)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
