@@ -203,12 +203,26 @@ def bigEgg(frame):
 
 def find_edges(frame):
 
-    lower = np.array([0, 0, 200], dtype='uint8')
-    upper = np.array([90, 90, 255], dtype='uint8')
+    lower = np.array([0, 10, 125], dtype='uint8')
+    upper = np.array([6, 255, 255], dtype='uint8')
+    lower2 = np.array([174, 10, 125], dtype='uint8')
+    upper2 = np.array([180, 255, 255], dtype='uint8')
 
-    mask = cv2.inRange(frame, lower, upper)
-    img = cv2.bitwise_and(frame, frame, mask = mask)
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    hsvIm = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    mask1 = cv2.inRange(hsvIm, lower, upper)
+    mask2 = cv2.inRange(hsvIm, lower2, upper2)
+
+    mask = cv2.bitwise_or(mask1, mask2)
+
+    img = cv2.bitwise_and(hsvIm, hsvIm, mask = mask)
+    orimg = cv2.cvtColor(img, cv2.COLOR_HSV2BGR)
+    gray = cv2.cvtColor(orimg, cv2.COLOR_BGR2GRAY)
+    #mask = cv2.inRange(frame, lower, upper)
+    #img = cv2.bitwise_and(frame, frame, mask = mask)
+    #gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+
     edges = cv2.Canny(gray, 50, 150, apertureSize=3)
     lines = cv2.HoughLinesP(
             edges,
