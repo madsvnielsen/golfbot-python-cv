@@ -72,7 +72,7 @@ def start():
     search_mode = True
     
     assumed_balls_in_mouth = 0
-    pickup_threshold = 10
+    pickup_threshold = 5
 
     
     while True:

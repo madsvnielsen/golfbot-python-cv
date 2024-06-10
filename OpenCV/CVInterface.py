@@ -8,6 +8,8 @@ import math
 import socket
 
 class CVInterface:
+
+    test_mode = False
     
     ## How much the image is blurred (to make detection easier)
     __gaussian_blur = (27,27)
@@ -30,17 +32,27 @@ class CVInterface:
     __BOUND_MINLEN = 50
     __BOUND_MAXGAP = 5
     __REFRESH_BOUND_FRAME = 100  ## How many frames should the program analyze when finding the boundary?
-    __boundary_lower_color = np.array([0, 0, 200], dtype='uint8') ## Lower bound for color of the edge (BGR)
-    __boundary_upper_color = np.array([90, 90, 255], dtype='uint8') ## Upper bound for color of the edge (BGR)
-  
+    __boundary_lower_color1 = np.array([0, 10, 125], dtype='uint8') ## Lower bound for color of the edge (HSV)
+    __boundary_upper_color1 = np.array([6, 255, 255], dtype='uint8') ## Upper bound for color of the edge (HSV)
+    __boundary_lower_color2 = np.array([174, 10, 125], dtype='uint8') ## Lower bound for color of the edge (HSV)
+    __boundary_upper_color2 =  np.array([180, 255, 255], dtype='uint8') ## Upper bound for color of the edge (HSV)
+
     """
     A class defining methods for computer vision functionalities.
     """
-    def __init__(self, video_capture_device):
+    def __init__(self, video_capture_device : int):
         self.video_capture_device = video_capture_device
         self.__init_ball_detector()
         self.__init_robot_detector()
         self.__capture_device = cv2.VideoCapture(1)   ## Target capture device
+
+    '''
+    def __init__(self, test_picture : str):
+        self.test_mode = True
+        self.test_picture = test_picture
+        self.__init_ball_detector()
+        self.__init_robot_detector()
+    '''     
 
     def __init_ball_detector(self):
         ## SETTINGS FOR BALL DETECTIONS
@@ -77,13 +89,15 @@ class CVInterface:
         rparams.maxInertiaRatio = 0.5
         ## Upper and lower colors for detection of robot  (ALL IN HSV)
         self.__robot_detector = cv2.SimpleBlobDetector_create(rparams)
-        self.__robot_origin_lower_color = np.array([40, 10, 125], dtype='uint8')  #Lower color of center (green cirlcle)
-        self.__robot_origin_upper_color = np.array([120, 255, 255], dtype='uint8') #Upper color of center
-        self.__robot_direction_lower_color = np.array([137, 10, 125], dtype='uint8') #Lower color of direction marker (purple)
-        self.__robot_direction_upper_color = np.array([170, 255, 255], dtype='uint8') #Upper color of direction marker
+        self.__robot_origin_lower_color = np.array([45, 10, 125], dtype='uint8')  #Lower color of center (green cirlcle)
+        self.__robot_origin_upper_color = np.array([72, 255, 255], dtype='uint8') #Upper color of center
+        self.__robot_direction_lower_color = np.array([135, 10, 125], dtype='uint8') #Lower color of direction marker (purple)
+        self.__robot_direction_upper_color = np.array([160, 255, 255], dtype='uint8') #Upper color of direction marker
     def __cap_frame(self):
-        _, frame = self.__capture_device.read()
-
+        if not self.test_mode:
+            _, frame = self.__capture_device.read()
+        else:
+            frame = cv2.imread(self.test_picture)
         self.__draw_balls(self.ball_pos, frame)
         self.__draw_course(frame)
         self.__draw_robot(frame)
@@ -122,11 +136,19 @@ class CVInterface:
         return keypoints
 
     def __find_edges(self, frame):
-        lower = self.__boundary_lower_color
-        upper = self.__boundary_upper_color
-        mask = cv2.inRange(frame, lower, upper)
-        img = cv2.bitwise_and(frame, frame, mask = mask)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        lower = self.__boundary_lower_color1
+        upper = self.__boundary_upper_color1
+        lower2 = self.__boundary_lower_color2
+        upper2 = self.__boundary_upper_color2
+        hsvIm = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        mask1 = cv2.inRange(hsvIm, lower, upper)
+        mask2 = cv2.inRange(hsvIm, lower2, upper2)
+        mask = cv2.bitwise_or(mask1, mask2)
+
+        img = cv2.bitwise_and(hsvIm, hsvIm, mask = mask)
+        orimg = cv2.cvtColor(img, cv2.COLOR_HSV2BGR)
+        gray = cv2.cvtColor(orimg, cv2.COLOR_BGR2GRAY)
+
         edges = cv2.Canny(gray, 50, 150, apertureSize=3)
         lines = cv2.HoughLinesP(
                 edges,
