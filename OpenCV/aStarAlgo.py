@@ -171,31 +171,50 @@ def main(blockArr, destArr, srcArr):
     # Define the grid (1 for unblocked, 0 for blocked)
     grid = [[1 for _ in range(COL)] for _ in range(ROW)]
 
-    # Define the source and destination
+    # coordinater for forhindringer bliver sat til 0 i grid
     for i in blockArr:
         grid[i[0]][i[1]] = 0
 
+    # kopire alt andet end sidste element til srcArr og beholder robot start position
     srcArr.extend(destArr[:-1])
+    # destination til maal
+    special_dest = [59, 0]
 
-    for src, dest in zip(srcArr, destArr):
-        # Run the A* search algorithm
-        a_star_search(grid, src, dest)
+    # while loop for at komme til maal efter x bolde og der efter vidre
+    i = 0
+    while i < len(srcArr):
+        src = srcArr[i]
+        if i > 0 and (i + 1) % 6 == 0:  # Check for every sixth iteration (1-indexed)
+            print(f"Running A* search from {srcArr[i]} to {special_dest}")
+            a_star_search(grid, srcArr[i], special_dest)
+            if i + 1 < len(destArr):
+                print(f"Running A* search from {special_dest} to {destArr[i]}")
+                a_star_search(grid, special_dest, destArr[i])
+            i += 1  # Move to the next source and destination
+        else:
+            dest = destArr[i]
+            print(f"Running A* search from {src} to {dest}")
+            a_star_search(grid, src, dest)
+            i += 1
 
 
 if __name__ == "__main__":
     blockArr = []
+    # coordinater for forhindringer paa bane
     n = int(input("Enter the number of blocked cells: "))
     for i in range(n):
         x = int(input("Enter the x coordinate of the blocked cell: "))
         y = int(input("Enter the y coordinate of the blocked cell: "))
         blockArr.append([x, y])
     destArr = []
+    # coordinater for bolde
     n = int(input("Enter the number of balls to collect"))
     for i in range(n):
         x = int(input("Enter the x coordinate of the ball: "))
         y = int(input("Enter the y coordinate of the ball: "))
         destArr.append([x, y])
     srcArr = []
+    # Robots start position
     print("Enter the coordinates of the Robot")
     x = int(input("Enter the x coordinate of the robot: "))
     y = int(input("Enter the y coordinate of the robot: "))
