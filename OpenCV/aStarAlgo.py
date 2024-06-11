@@ -167,21 +167,20 @@ def a_star_search(grid, src, dest):
 # Driver Code
 
 
-def main(blockArr):
+def main(blockArr, destArr, srcArr):
     # Define the grid (1 for unblocked, 0 for blocked)
     grid = [[1 for _ in range(COL)] for _ in range(ROW)]
 
     # Define the source and destination
-    src = [8, 0]
-    dest = [0, 4]
     for i in blockArr:
         grid[i[0]][i[1]] = 0
-    
 
-    # Run the A* search algorithm
-    a_star_search(grid, src, dest)
-    for i in range(5):
-        print(grid[i][:10])
+    srcArr.extend(destArr[1:])
+
+    for src, dest in zip(srcArr, destArr):
+        # Run the A* search algorithm
+        a_star_search(grid, src, dest)
+
 
 if __name__ == "__main__":
     blockArr = []
@@ -190,16 +189,15 @@ if __name__ == "__main__":
         x = int(input("Enter the x coordinate of the blocked cell: "))
         y = int(input("Enter the y coordinate of the blocked cell: "))
         blockArr.append([x, y])
-    destArr= []
-    n = int(input("Enter the coordinates of the Ball"))
+    destArr = []
+    n = int(input("Enter the number of balls to collect"))
     for i in range(n):
-        x = int(input("Enter the x coordinate of the blocked cell: "))
-        y = int(input("Enter the y coordinate of the blocked cell: "))
+        x = int(input("Enter the x coordinate of the ball: "))
+        y = int(input("Enter the y coordinate of the ball: "))
         destArr.append([x, y])
-    srcArr= []
-    n = int(input("Enter the coordinates of the Robot"))
-    for i in range(n):
-        x = int(input("Enter the x coordinate of the blocked cell: "))
-        y = int(input("Enter the y coordinate of the blocked cell: "))
-        srcArr.append([x, y])
-    main(blockArr)
+    srcArr = []
+    print("Enter the coordinates of the Robot")
+    x = int(input("Enter the x coordinate of the robot: "))
+    y = int(input("Enter the y coordinate of the robot: "))
+    srcArr.append([x, y])
+    main(blockArr, destArr, srcArr)
