@@ -175,7 +175,7 @@ def main(blockArr, destArr, srcArr):
     for i in blockArr:
         grid[i[0]][i[1]] = 0
 
-    srcArr.extend(destArr[1:])
+    srcArr.extend(destArr[:-1])
 
     for src, dest in zip(srcArr, destArr):
         # Run the A* search algorithm
