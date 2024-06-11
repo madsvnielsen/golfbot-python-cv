@@ -178,7 +178,7 @@ def main(blockArr, destArr, srcArr):
     # kopire alt andet end sidste element til srcArr og beholder robot start position
     srcArr.extend(destArr[:-1])
     # destination til maal
-    special_dest = [59, 0]
+    special_dest = [59, 1]
 
     # while loop for at komme til maal efter x bolde og der efter vidre
     i = 0
