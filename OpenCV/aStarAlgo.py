@@ -167,7 +167,7 @@ def a_star_search(grid, src, dest):
 # Driver Code
 
 
-def main(blockArr, destArr, srcArr):
+def robot_navigation(blockArr, destArr, srcArr):
     # Define the grid (1 for unblocked, 0 for blocked)
     grid = [[1 for _ in range(COL)] for _ in range(ROW)]
 
@@ -219,4 +219,4 @@ if __name__ == "__main__":
     x = int(input("Enter the x coordinate of the robot: "))
     y = int(input("Enter the y coordinate of the robot: "))
     srcArr.append([x, y])
-    main(blockArr, destArr, srcArr)
+    robot_navigation(blockArr, destArr, srcArr)
