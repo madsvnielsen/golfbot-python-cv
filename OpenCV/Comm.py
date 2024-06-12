@@ -74,12 +74,16 @@ def start():
     assumed_balls_in_mouth = 0
     pickup_threshold = 5
 
+    
     while True:
         if search_mode:
              active_target = acquireTargetBall(cv, boundrypixel)
+             cv.target_pos = active_target  
              if active_target != None:
                 search_mode = False
-        
+                server.send_key_input("start")
+             else:
+                continue
         robotcenter, robotfront, robotDir = getRobotPosition(cv, boundrypixel)
         if robotcenter == None: continue
         vector_to_active_target = (active_target[0] - robotcenter[0], active_target[1] - robotcenter[1])
@@ -91,6 +95,7 @@ def start():
         if distance_to_target < pickup_threshold:
             assumed_balls_in_mouth += 1
             search_mode = True
+            server.send_key_input("stop")
             continue
             
 
@@ -100,14 +105,16 @@ def start():
         angle_to_turn = angle_between((robotDir), vector_to_active_target)
         print(angle_to_turn)
         turn_in_seconds = abs((angle_to_turn/90)*0.85)
+        if turn_in_seconds < 0.1:
+            turn_in_seconds = 0.1
         
         if 3 < angle_to_turn < 180:
-            server.send_key_input("left " + str(turn_in_seconds)+ "\n")
+            server.send_key_input("left " + str(turn_in_seconds)+ " ")
         elif -3 > angle_to_turn > -179:
-            server.send_key_input("right " + str(turn_in_seconds)+ "\n")
+            server.send_key_input("right " + str(turn_in_seconds)+ " ")
         elif abs(angle_to_turn)<3:
             server.send_key_input("forward")
-        sleep(0.5)
+        sleep(1 + turn_in_seconds)
         '''
         for keypoints in start_generator:
             balls = keypoints
@@ -134,10 +141,23 @@ def acquireTargetBall(cv, boundrypixel):
     distances = [euclidean_distance(robotcenter, coord) for coord in balls_normalized]
 
             # Find the index of the coordinate with the smallest distance
-    closest_index = distances.index(min(distances))
+    
+    min_distance = 10
+
+    closest_distance = None
+    closest_index = None
+    closest_coordinate = None
+
+
+    # Filter distances greater than min_distance and find the minimum of the filtered list
+    filtered_distances = [d for d in distances if d > min_distance]
+    if filtered_distances:
+        closest_distance = min(filtered_distances)
+        closest_index = distances.index(closest_distance)
+        closest_coordinate = balls_normalized[closest_index]
 
             # Get the closest coordinate
-    closest_coordinate = balls_normalized[closest_index]
+    
     return closest_coordinate
 
 start()
