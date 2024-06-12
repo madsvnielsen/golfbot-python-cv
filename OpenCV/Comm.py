@@ -1,7 +1,11 @@
 import math
 from time import sleep
+
+import numpy as np
+
 from CVInterface import CVInterface
 from Server1 import Server
+
 
 
 
@@ -88,6 +92,27 @@ def getRobotPosition(cv, boundrypixel):
     
     return robotcenter, robotfront, find_robot_direction_and_angle(robotcenter,robotfront)
 
+
+# Function to project points using homography matrix
+def project_points_to_ground_plane(points, H):
+    points = np.array(points)
+    if points.ndim == 1:
+        points = points[np.newaxis, :]  # Convert to 2D array if it's a single point
+
+    # Add ones to the points (homogeneous coordinates)
+    points = np.concatenate([points, np.ones((points.shape[0], 1))], axis=1)
+
+    # Transform points using homography matrix
+    projected_points = H.dot(points.T).T
+
+    # Normalize the points
+    projected_points = projected_points[:, :2] / projected_points[:, 2, np.newaxis]
+
+    return projected_points
+
+
+
+
 def start():
     cv =CVInterface(1)
     server = Server()
@@ -110,6 +135,13 @@ def start():
              else:
                 continue
         robotcenter, robotfront, robotDir = getRobotPosition(cv, boundrypixel)
+        print("Before projection", robotfront)
+        robot_position_image = [robotfront[0], robotfront[1]]  # Replace with actual circle center coordinates
+
+        # Project the robot position to the ground plane
+        robot_position_ground = project_points_to_ground_plane(robot_position_image, H)
+
+        print("Robot position on the ground plane:", robot_position_ground)
         if robotcenter == None: continue
         vector_to_active_target = (active_target[0] - robotcenter[0], active_target[1] - robotcenter[1])
         print("TARGET: " + str(active_target))
