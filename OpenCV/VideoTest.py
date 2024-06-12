@@ -1,11 +1,24 @@
+import math
+
 from CVInterface import CVInterface
-from time import sleep
+import time
+
 cv = CVInterface(1)
 boundrypixel= cv.get_course_boundary()
+def euclidean_distance(coord1, coord2):
+    return math.sqrt((coord1[0] - coord2[0]) ** 2 + (coord1[1] - coord2[1]) ** 2)
+
+
 while True:
-    cv.get_robot_position_and_rotation()
-    cv.get_ball_positions_across_frames(2)
-    cv.get_goals()
+    ball_positions = cv.get_ball_positions()
+    if len(ball_positions) >= 2:
+        distance = euclidean_distance(ball_positions[0], ball_positions[1])
+        print(f"The distance between the first two balls is: {distance}")
+    else:
+        print("Less than two balls were detected.")
+    time.sleep(1)
+
+
 
 
     
