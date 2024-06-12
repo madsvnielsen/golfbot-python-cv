@@ -26,6 +26,8 @@ class CVInterface:
     left_goal = (0,0)
     right_goal = (0,0)
 
+    __deposit_distance = 150
+
 ## BOUNDARY DETECTION (for detecting edges)
     ##All BOUND_X variables are parameters for the HoughLines detector. 
     ## See openCV documentation for what they mean
@@ -95,7 +97,7 @@ class CVInterface:
         self.__robot_origin_lower_color = np.array([45, 10, 125], dtype='uint8')  #Lower color of center (green circle)
         self.__robot_origin_upper_color = np.array([90, 255, 255], dtype='uint8') #Upper color of center
         self.__robot_direction_lower_color = np.array([8, 150, 125], dtype='uint8') #Lower color of direction marker (orange)
-        self.__robot_direction_upper_color = np.array([20, 255, 255], dtype='uint8') #Upper color of direction marker
+        self.__robot_direction_upper_color = np.array([25, 255, 255], dtype='uint8') #Upper color of direction marker
     def __cap_frame(self):
         if not self.test_mode:
             _, frame = self.__capture_device.read()
@@ -264,6 +266,7 @@ class CVInterface:
         cv2.line(frame,(self.bottom_left[0], self.bottom_left[1]),(self.top_left[0], self.top_left[1]),(0,255,0),5)
         cv2.line(frame,(self.top_right[0], self.top_right[1]),(self.bottom_right[0], self.bottom_right[1]),(0,255,0),5)
         cv2.circle(frame, self.left_goal,15,(255,255,0),2)
+        cv2.circle(frame, (self.left_goal[0] + self.__deposit_distance, self.left_goal[1]),15,(255,255,0),2)
         # draw the center of the circle
         cv2.putText(frame,'Left goal',
             self.left_goal,
@@ -273,6 +276,7 @@ class CVInterface:
             thickness,
             lineType)
         cv2.circle(frame, self.right_goal,15,(255,255,0),2)
+        cv2.circle(frame, (self.right_goal[0] - self.__deposit_distance, self.right_goal[1]),15,(255,255,0),2)
         # draw the center of the circle
         cv2.putText(frame,'Right goal',
             self.right_goal,
