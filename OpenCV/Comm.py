@@ -26,6 +26,31 @@ def convert_to_normalized(pixel_coords, square_bottom_left, square_top_right):
 
         return normalized_x, normalized_y
 
+
+def convert_to_pixel(normalized_coords, square_bottom_left, square_top_right):
+    square_dimensions_cm = (180, 120)
+    normalized_x, normalized_y = (normalized_coords[0], normalized_coords[1])
+    square_width_pixels = square_top_right[0] - square_bottom_left[0]
+    square_height_pixels = square_top_right[1] - square_bottom_left[1]
+
+    # Calculate the size of one unit increment in centimeters
+    one_unit_increment_cm_width = square_dimensions_cm[0] / square_width_pixels
+    one_unit_increment_cm_height = square_dimensions_cm[1] / square_height_pixels
+
+    # Convert normalized coordinates back to relative pixel coordinates
+    relative_x = normalized_x / one_unit_increment_cm_width
+    relative_y = normalized_y / one_unit_increment_cm_height
+
+    # Add the bottom-left corner of the square to get the absolute pixel coordinates
+    pixel_x = relative_x + square_bottom_left[0]
+    pixel_y = relative_y + square_bottom_left[1]
+
+    return pixel_x, pixel_y
+
+
+
+
+
 def find_robot_direction_and_angle(center_coords, front_coords):
         # Calculate the vector representing the direction the robot is facing
         direction = (front_coords[0] - center_coords[0], front_coords[1] - center_coords[1])
@@ -77,8 +102,8 @@ def start():
     
     while True:
         if search_mode:
-             active_target = acquireTargetBall(cv, boundrypixel)
-             cv.target_pos = active_target  
+             active_target, target_pixels = acquireTargetBall(cv, boundrypixel)
+             cv.target_pos = target_pixels  
              if active_target != None:
                 search_mode = False
                 server.send_key_input("start")
@@ -90,12 +115,14 @@ def start():
         print("TARGET: " + str(active_target))
         print("VECTOR: " + str(vector_to_active_target))
         distance_to_target = euclidean_distance(active_target, robotfront)
+        origin_distance_to_target = euclidean_distance(active_target, robotcenter)
         print("DISTANCE: " + str(distance_to_target))
         
-        if distance_to_target < pickup_threshold:
+        if min([distance_to_target, origin_distance_to_target]) < pickup_threshold:
             assumed_balls_in_mouth += 1
             search_mode = True
-            server.send_key_input("stop")
+            server.send_key_input("forward")
+            sleep(1)
             continue
             
 
@@ -128,13 +155,13 @@ def acquireTargetBall(cv, boundrypixel):
     balls_normalized = []
     for coords in ballspixelcords:
         if coords is None:
-            return None
+            return None, None
         normalized_coords = convert_to_normalized(coords, boundrypixel["bottom_left"], boundrypixel["top_right"])
         balls_normalized.append(normalized_coords)
 
     
     robotcenter,_, robotDir = getRobotPosition(cv, boundrypixel)
-    if robotcenter == None: return None
+    if robotcenter == None: return None, None
     print("Robot direction and angle: " + str(robotDir))
 
             # Calculate distances
@@ -147,6 +174,7 @@ def acquireTargetBall(cv, boundrypixel):
     closest_distance = None
     closest_index = None
     closest_coordinate = None
+    closest_pixels = None
 
 
     # Filter distances greater than min_distance and find the minimum of the filtered list
@@ -155,9 +183,8 @@ def acquireTargetBall(cv, boundrypixel):
         closest_distance = min(filtered_distances)
         closest_index = distances.index(closest_distance)
         closest_coordinate = balls_normalized[closest_index]
-
-            # Get the closest coordinate
+        closest_pixels = convert_to_pixel(closest_coordinate, boundrypixel["bottom_left"], boundrypixel["top_right"])
     
-    return closest_coordinate
+    return closest_coordinate, closest_pixels
 
 start()
