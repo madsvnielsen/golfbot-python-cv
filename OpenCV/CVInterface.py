@@ -23,6 +23,8 @@ class CVInterface:
     top_right = (0,0)
     bottom_left = (0,0)
     bottom_right = (0,0)
+    left_goal = (0,0)
+    right_goal = (0,0)
 
 ## BOUNDARY DETECTION (for detecting edges)
     ##All BOUND_X variables are parameters for the HoughLines detector. 
@@ -261,7 +263,24 @@ class CVInterface:
         cv2.line(frame,(self.bottom_left[0], self.bottom_left[1]),(self.bottom_right[0], self.bottom_right[1]),(0,255,0),5)
         cv2.line(frame,(self.bottom_left[0], self.bottom_left[1]),(self.top_left[0], self.top_left[1]),(0,255,0),5)
         cv2.line(frame,(self.top_right[0], self.top_right[1]),(self.bottom_right[0], self.bottom_right[1]),(0,255,0),5)
-    
+        cv2.circle(frame, self.left_goal,15,(255,255,0),2)
+        # draw the center of the circle
+        cv2.putText(frame,'Left goal',
+            self.left_goal,
+            font,
+            fontScale,
+            fontColor,
+            thickness,
+            lineType)
+        cv2.circle(frame, self.right_goal,15,(255,255,0),2)
+        # draw the center of the circle
+        cv2.putText(frame,'Right goal',
+            self.right_goal,
+            font,
+            fontScale,
+            fontColor,
+            thickness,
+            lineType)
     def __draw_robot(self, frame):
 
         if(self.robot is None):
@@ -466,11 +485,12 @@ class CVInterface:
 
 
     def get_goals(self):
-        """
-        This method should return the goal positions.
-        (Implementation details will depend on the specific vision system)
-        """
-        pass
+        global top_left, bottom_left, top_right, bottom_right
+        left_goal_center = (int((self.top_left[0]+self.bottom_left[0])/2), int(self.top_left[1]-((self.top_left[1]-self.bottom_left[1])/2)))
+        right_goal_center = (int((self.top_right[0]+self.bottom_right[0])/2), int(self.top_right[1]-((self.top_right[1]-self.bottom_right[1])/2)))
+        self.left_goal = left_goal_center
+        self.right_goal = right_goal_center
+        return (left_goal_center, right_goal_center)
 
 ''' Example usage
 inter = CVInterface(0)
