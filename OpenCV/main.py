@@ -83,7 +83,7 @@ bottom_right = [0,0]
 
 ## Cross FINDING
 template = cv2.imread("cross_template.png")
-cross_startX, cross_startY, cross_endX, cross_endY = (0,0,0,0)
+cross_startX, cross_startY, cross_endX, cross_endY = 0,0,0,0
 
 
 def monitor_cmd():
@@ -340,17 +340,23 @@ def find_cross(frame):
     templateGray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
     result = cv2.matchTemplate(imageGray, templateGray,
 	cv2.TM_CCOEFF_NORMED)
-    (minVal, maxVal, minLoc, maxLoc) = cv2.minMaxLoc(result)
-    (cross_startX, cross_startY) = maxLoc
+
+    #(minVal, maxVal, minLoc, maxLoc) = cv2.minMaxLoc(result)
+    (_, maxVal, _, maxLoc) = cv2.minMaxLoc(result)
+    cross_startX, cross_startY = maxLoc
     cross_endX = cross_startX + template.shape[1]
     cross_endY = cross_startY + template.shape[0]
+
+
+frame = cv2.imread("cross_template.png")
+find_cross(frame)
 
 '''
 ## Draws balls (given by a result of HoughCircles) on a frame
 def draw_balls(circles, frame):
     font                   = cv2.FONT_HERSHEY_SIMPLEX
     bottomLeftCornerOfText = (10,500)
-    fontScale              = 1
+    fontScale              = 1+++++++++++
     fontColor              = (255,0,0)
     thickness              = 3
     lineType               = 2
