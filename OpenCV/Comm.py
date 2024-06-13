@@ -5,8 +5,10 @@ import numpy as np
 
 from CVInterface import CVInterface
 from Server1 import Server
-H = np.matrix([[5.37461851e-02, 1.05530039e+00, -2.68980926e+02], [-9.88030481e-01, -
-              2.64089940e-02, 1.11777504e+03], [1.09320280e-04, 2.59694046e-05, 1.00000000e+00]])
+
+H = np.matrix([[-4.95507336e-03,  9.86068684e-01,  3.47332870e+02],
+ [-1.00641543e+00, -4.58681401e-02,  1.97729987e+03],
+ [ 8.01288522e-06, -5.08965362e-06,  1.00000000e+00]])
 
 
 def convert_to_normalized(pixel_coords, square_bottom_left, square_top_right):
@@ -134,7 +136,7 @@ def start():
              if active_target != None:
                 search_mode = False
                 server.send_key_input("start")
-            else:
+             else:
                 continue
         robotcenter, robotfront, robotDir = getRobotPosition(cv, boundrypixel)
         if robotcenter == None:
@@ -233,9 +235,9 @@ def deposit_balls(cv, boundrypixel, server):
             if not is_parked:
                 server.send_key_input("forward")
             elif not balls_deposited:
-                server.send_key_input("forward")
+                server.send_key_input("k")
+                balls_deposited = True
                 sleep(5)
-                pass
 
         sleep(1 + turn_in_seconds)
         
