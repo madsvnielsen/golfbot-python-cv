@@ -355,7 +355,6 @@ class CVInterface:
                         new_confirmations.append(new_ball)
             confirmed_balls = new_confirmations
         return confirmed_balls
-                        
 
 
 
@@ -366,15 +365,15 @@ class CVInterface:
         blur = cv2.GaussianBlur(gray, self.__gaussian_blur, cv2.BORDER_DEFAULT)
         negative = cv2.bitwise_not(blur)
         keypoints = self.__ball_detector.detect(negative)
-        for keypoint in keypoints:
-            if not self.top_left[0] < np.uint16(keypoint.pt[0]) < self.top_right[0]:
-                keypoints.remove(keypoint)
-                continue
-            if not self.top_left[1] < np.uint16(keypoint.pt[1]) < self.bottom_left[1]:
-                keypoints.remove(keypoint)
-        ball_positions = [(np.uint16(point.pt[0]), np.uint16(point.pt[1])) for point in keypoints]
-        
-        self.ball_pos = keypoints
+
+        filtered_keypoints = [
+            keypoint for keypoint in keypoints
+            if self.top_left[0] < int(keypoint.pt[0]) < self.top_right[0]
+               and self.top_left[1] < int(keypoint.pt[1]) < self.bottom_left[1]
+        ]
+
+        ball_positions = [(int(point.pt[0]), int(point.pt[1])) for point in filtered_keypoints]
+        self.ball_pos = filtered_keypoints
 
         self.__update_drawing(frame)
         return ball_positions
