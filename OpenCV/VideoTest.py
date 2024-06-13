@@ -30,6 +30,14 @@ def convert_to_normalized(pixel_coords, square_bottom_left, square_top_right):
 
     return normalized_x, normalized_y
 
+def find_error_in_plane(robotDistanceFromCenter):
+    cameraHeight = 155
+    robotHeight = 24
+    angleA = math.atan(cameraHeight / robotDistanceFromCenter)
+    return robotHeight/math.tan(angleA)
+
+
+
 
 while True:
     ball_positions = cv.get_ball_positions()
