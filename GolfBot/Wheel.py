@@ -10,8 +10,7 @@ distanceToBall = disFromrobt*10
 # Caluclate wheel rotaions needed to move distance to ball
 rotations_needed = distanceToBall / tire.circumference_mm
 
-tank_drive.on_for_rotations(SpeedPercent(
-    50), SpeedPercent(75), rotations_needed)
+tank_drive.on_for_rotations(SpeedPercent(50), SpeedPercent(75), rotations_needed)
 
 leftWheel.on_for_rotations(SpeedPercent(50), rotations_needed)
 rightWheel.on_for_rotations(SpeedPercent(50), rotations_needed)
