@@ -219,4 +219,7 @@ if __name__ == "__main__":
     x = int(input("Enter the x coordinate of the robot: "))
     y = int(input("Enter the y coordinate of the robot: "))
     srcArr.append([x, y])
+    asd = is_valid(120, 180)
+    if asd is False:
+        print("Fuck")
     robot_navigation(blockArr, destArr, srcArr)
