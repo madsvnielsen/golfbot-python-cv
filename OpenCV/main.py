@@ -7,7 +7,9 @@ import sys
 import math
 import socket
 
+from CVInterface import CVInterface
 window_name = "Window Name"
+cv = CVInterface(1)
 
 ## BALL DETECTION
 GAUSSIAN_BLUR = (27,27)
@@ -491,7 +493,11 @@ def QR_Reader(frame, ret):
                 else:
                     color = (0, 0, 255)
                 return cv2.polylines(frame, [p.astype(int)], True, color, 8)
-      
+
+
+def euclidean_distance(coord1, coord2):
+    return math.sqrt((coord1[0] - coord2[0]) ** 2 + (coord1[1] - coord2[1]) ** 2)
+
 
 def start():
     global FIND_COURSE, CURRENT_FRAME, REFRESH_BOUND_FRAME, top_left, top_right, bottom_right, bottom_left
@@ -552,7 +558,6 @@ def start():
                 FIND_COURSE = False
 
 
-
         #draw_balls(circles, frame)
         origin = find_robot_origin(frame)
         dir_vector = find_robot_direction(frame)
@@ -593,8 +598,12 @@ def start():
         draw_balls2(keypoints, frame)
         draw_course(frame)
         #draw_cross(frame)
-
-        
+        ball_positions = cv.get_ball_positions()
+        if len(ball_positions) >= 2:
+            distance = euclidean_distance(ball_positions[0], ball_positions[1])
+            print(f"The distance between the first two balls is: {distance}")
+        else:
+            print("Less than two balls were detected.")
 
 
         stack1 = np.concatenate((frame, frame), axis=0)
