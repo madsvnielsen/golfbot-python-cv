@@ -3,7 +3,7 @@ import cv2 as cv
 import glob
 
 chessboardsize = (8, 6)
-framesize = (1616, 1077)
+framesize = (1920, 1080)
 
 criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
