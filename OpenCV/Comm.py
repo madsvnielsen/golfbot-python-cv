@@ -69,6 +69,36 @@ def find_robot_direction_and_angle(center_coords, front_coords):
     return direction
 
 
+def find_error_in_plane(robotDistanceFromCenter):
+    cameraHeight = 155
+    robotHeight = 24
+    angleA = math.atan(cameraHeight / robotDistanceFromCenter)
+    return robotHeight/math.tan(angleA)
+
+
+def correct_robot_coordinate_pixels(position, boundrypixel, cv):
+    position_normal = convert_to_normalized(position, boundrypixel["bottom_left"], boundrypixel["top_right"])
+    center_normal = convert_to_normalized(cv.get_center(), boundrypixel["bottom_left"], boundrypixel["top_right"])
+    distance_from_center = euclidean_distance(position_normal, center_normal)
+    distance_error = find_error_in_plane(distance_from_center)
+    print(center_normal)
+
+    position_vector = np.array(position_normal)
+    center_vector = np.array(center_normal)
+
+    direction_vector = center_vector - position_vector
+    direction_vector_normalized = direction_vector / np.linalg.norm(direction_vector)
+    
+    # Scale the direction vector by the error
+    offset_vector = direction_vector_normalized * distance_error
+    
+    # Calculate the new robot center by adding the offset vector
+    new_position =  tuple(position_normal + offset_vector)
+
+    #position_fixed_pixels = convert_to_pixel(new_position , boundrypixel["bottom_left"], boundrypixel["top_right"])
+
+    return new_position
+
 # Function to calculate Euclidean distance between two points
 def euclidean_distance(coord1, coord2):
     return math.sqrt((coord1[0] - coord2[0]) ** 2 + (coord1[1] - coord2[1]) ** 2)
@@ -87,13 +117,16 @@ def angle_between(v1, v2):
 def getRobotPosition(cv, boundrypixel):
     robotpixel = cv.get_robot_position_and_rotation()
 
-    print("Robot pixel", robotpixel)
     if (robotpixel["origin"] == None or robotpixel["direction"] == None):
         return None, None, None
-    robotcenter = convert_to_normalized(
-        robotpixel["origin"], boundrypixel["bottom_left"], boundrypixel["top_right"])
-    robotfront = convert_to_normalized(
-        robotpixel["direction"], boundrypixel["bottom_left"], boundrypixel["top_right"])
+    robotcenter = correct_robot_coordinate_pixels(robotpixel["origin"], boundrypixel, cv)
+    robotfront = correct_robot_coordinate_pixels(robotpixel["direction"], boundrypixel, cv)
+    
+
+    cv.projection= {
+        "r_center" : convert_to_pixel(robotcenter, boundrypixel["bottom_left"], boundrypixel["top_right"]),
+        "r_front" : convert_to_pixel(robotfront, boundrypixel["bottom_left"], boundrypixel["top_right"]),
+    }
 
     return robotcenter, robotfront, find_robot_direction_and_angle(robotcenter, robotfront)
 
@@ -167,7 +200,7 @@ def start():
             search_mode = True
             server.send_key_input("forward")
             sleep(1)
-            if assumed_balls_in_mouth > 0:
+            if assumed_balls_in_mouth > 4:
                 assumed_balls_in_mouth = 0
                 deposit_balls(cv, boundrypixel, server)
             continue
@@ -199,6 +232,9 @@ def start():
 def deposit_balls(cv, boundrypixel, server):
 
     robotcenter, robotfront, robotDir = getRobotPosition(cv, boundrypixel)
+    while robotcenter == None or robotDir == None:
+        robotcenter, robotfront, robotDir = getRobotPosition(cv, boundrypixel)
+
     balls_deposited = False
     is_parked = False
     left_goal, right_goal = cv.get_goals()
@@ -216,6 +252,8 @@ def deposit_balls(cv, boundrypixel, server):
     target_park_position = (target_goal[0] + (deposit_distance if left_goal_distance < right_goal_distance else -deposit_distance), target_goal[1])
     while not balls_deposited:
         robotcenter, robotfront, robotDir = getRobotPosition(cv, boundrypixel)
+        if robotDir == None or robotcenter == None:
+            continue
         if abs(euclidean_distance(robotcenter, target_park_position)) < parked_threshold:
             is_parked = True
         target = target_park_position if not is_parked else target_goal

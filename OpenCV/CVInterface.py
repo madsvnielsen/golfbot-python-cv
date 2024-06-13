@@ -16,6 +16,7 @@ class CVInterface:
 
     ## Variables for for drawing frames when any of the methods are called.
     robot = None
+    projection = None
     ball_pos = []
     confirmed_balls = []
     target_pos = None
@@ -97,7 +98,7 @@ class CVInterface:
         self.__robot_origin_lower_color = np.array([45, 10, 125], dtype='uint8')  #Lower color of center (green circle)
         self.__robot_origin_upper_color = np.array([90, 255, 255], dtype='uint8') #Upper color of center
         self.__robot_direction_lower_color = np.array([8, 150, 125], dtype='uint8') #Lower color of direction marker (orange)
-        self.__robot_direction_upper_color = np.array([25, 255, 255], dtype='uint8') #Upper color of direction marker
+        self.__robot_direction_upper_color = np.array([35, 255, 255], dtype='uint8') #Upper color of direction marker
     def __cap_frame(self):
         if not self.test_mode:
             _, frame = self.__capture_device.read()
@@ -328,6 +329,12 @@ class CVInterface:
                 fontColor,
                 thickness,
                 lineType)
+        if self.projection is not None:
+            cv2.circle(frame, (int(self.projection["r_front"][0]), int(self.projection["r_front"][1])),25,(0,255,255),2)
+            cv2.circle(frame, (int(self.projection["r_front"][0]), int(self.projection["r_front"][1])),25,(0,255,255),2)
+            cv2.circle(frame, (int(self.projection["r_center"][0]), int(self.projection["r_center"][1])),25,(0,255,255),2)
+            cv2.circle(frame, (int(self.projection["r_center"][0]), int(self.projection["r_center"][1])),25,(0,255,255),2)
+            
 
     def get_robot_position_and_rotation(self):
         frame = self.__cap_frame()
@@ -355,6 +362,7 @@ class CVInterface:
                         new_confirmations.append(new_ball)
             confirmed_balls = new_confirmations
         return confirmed_balls
+                        
 
 
 
@@ -365,15 +373,14 @@ class CVInterface:
         blur = cv2.GaussianBlur(gray, self.__gaussian_blur, cv2.BORDER_DEFAULT)
         negative = cv2.bitwise_not(blur)
         keypoints = self.__ball_detector.detect(negative)
-
-        filtered_keypoints = [
-            keypoint for keypoint in keypoints
-            if self.top_left[0] < int(keypoint.pt[0]) < self.top_right[0]
-               and self.top_left[1] < int(keypoint.pt[1]) < self.bottom_left[1]
-        ]
-
-        ball_positions = [(int(point.pt[0]), int(point.pt[1])) for point in filtered_keypoints]
-        self.ball_pos = filtered_keypoints
+        for keypoint in keypoints:
+            if not self.top_left[0] < np.uint16(keypoint.pt[0]) < self.top_right[0]:
+                keypoints.remove(keypoint)
+                continue
+            if not self.top_left[1] < np.uint16(keypoint.pt[1]) < self.bottom_left[1]:
+                keypoints.remove(keypoint)
+        ball_positions = [(np.uint16(point.pt[0]), np.uint16(point.pt[1])) for point in keypoints]
+        self.ball_pos = keypoints
 
         self.__update_drawing(frame)
         return ball_positions
@@ -495,6 +502,10 @@ class CVInterface:
         self.right_goal = right_goal_center
         return (left_goal_center, right_goal_center)
 
+
+    def get_center(self):
+        frame = self.__cap_frame()
+        return (int(frame.shape[1]/2), int(frame.shape[0]/2))
 ''' Example usage
 inter = CVInterface(0)
 print(inter.get_robot_position_and_rotation())
