@@ -2,8 +2,8 @@ import numpy as np
 import cv2 as cv
 import glob
 
-chessboardsize = (9, 6)
-framesize = (1244, 764)
+chessboardsize = (8, 6)
+framesize = (1920, 1080)
 
 criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
@@ -13,7 +13,7 @@ objp[:, :2] = np.mgrid[0:chessboardsize[0], 0:chessboardsize[1]].T.reshape(-1, 2
 objPoints = []
 imgPoints = []
 
-images = glob.glob('*.png')
+images = glob.glob('*.jpg')
 
 if not images:
     print("No images found in the directory.")
@@ -53,8 +53,8 @@ if len(objPoints) > 0 and len(imgPoints) > 0:
     print("\nRotation Vectors", rvecs)
     print("\nTranslation vectors", tvecs)
 
-    img1 = cv.imread('cali5.png')
-    img2 = cv.imread('cali6.png')  # Assuming you have another image for homography
+    img1 = cv.imread('cali5.jpg')
+    img2 = cv.imread('cali6.jpg')  # Assuming you have another image for homography
     gray1 = cv.cvtColor(img1, cv.COLOR_BGR2GRAY)
     gray2 = cv.cvtColor(img2, cv.COLOR_BGR2GRAY)
 
@@ -82,7 +82,7 @@ if len(objPoints) > 0 and len(imgPoints) > 0:
     else:
         print("Chessboard corners not found in both images, unable to compute homography.")
 
-    img = cv.imread('cali5.png')
+    img = cv.imread('cali5.jpg')
     h, w = img.shape[:2]
     newCameraMatrix, roi = cv.getOptimalNewCameraMatrix(cameramatrix, dist, (w, h), 1, (w, h))
 

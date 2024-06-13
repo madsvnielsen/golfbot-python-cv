@@ -16,12 +16,18 @@ class CVInterface:
 
     ## Variables for for drawing frames when any of the methods are called.
     robot = None
+    projection = None
     ball_pos = []
+    confirmed_balls = []
     target_pos = None
     top_left = (0,0)
     top_right = (0,0)
     bottom_left = (0,0)
     bottom_right = (0,0)
+    left_goal = (0,0)
+    right_goal = (0,0)
+
+    __deposit_distance = 150
 
 ## BOUNDARY DETECTION (for detecting edges)
     ##All BOUND_X variables are parameters for the HoughLines detector. 
@@ -62,11 +68,11 @@ class CVInterface:
         params.minThreshold = 0      ## Min threshold for when something is accepted as a ball
         params.maxThreshold = 200    ## Max threshold
         params.filterByArea = True   ## Should we use the area of the blobs to filter whether its a ball?
-        params.minArea = 200       ## Potential setting for that balls needs to have an area greater than x
-        params.maxArea = 500         ## If the blobs area is bigger than this, it will not be detected as a ball
+        params.minArea = 300       ## Potential setting for that balls needs to have an area greater than x
+        params.maxArea = 650         ## If the blobs area is bigger than this, it will not be detected as a ball
         params.filterByCircularity = True  ## Should we use the circularity to filter?
         params.minCircularity = 0.4        ## Min circularity
-        params.filterByConvexity = True    ## Should we use the convexity?
+        params.filterByConvexity = False    ## Should we use the convexity?
         params.minConvexity = 0.8        
         params.filterByInertia = True     ## Should we use inertia?
         params.minInertiaRatio = 0.4
@@ -89,24 +95,28 @@ class CVInterface:
         rparams.maxInertiaRatio = 0.5
         ## Upper and lower colors for detection of robot  (ALL IN HSV)
         self.__robot_detector = cv2.SimpleBlobDetector_create(rparams)
-        self.__robot_origin_lower_color = np.array([45, 10, 125], dtype='uint8')  #Lower color of center (green cirlcle)
-        self.__robot_origin_upper_color = np.array([72, 255, 255], dtype='uint8') #Upper color of center
-        self.__robot_direction_lower_color = np.array([135, 10, 125], dtype='uint8') #Lower color of direction marker (purple)
-        self.__robot_direction_upper_color = np.array([160, 255, 255], dtype='uint8') #Upper color of direction marker
+        self.__robot_origin_lower_color = np.array([45, 10, 125], dtype='uint8')  #Lower color of center (green circle)
+        self.__robot_origin_upper_color = np.array([90, 255, 255], dtype='uint8') #Upper color of center
+        self.__robot_direction_lower_color = np.array([8, 150, 125], dtype='uint8') #Lower color of direction marker (orange)
+        self.__robot_direction_upper_color = np.array([35, 255, 255], dtype='uint8') #Upper color of direction marker
     def __cap_frame(self):
         if not self.test_mode:
             _, frame = self.__capture_device.read()
         else:
             frame = cv2.imread(self.test_picture)
+        
+        return frame
+
+    def __update_drawing(self, frame):
         self.__draw_balls(self.ball_pos, frame)
+        self.__draw_balls(self.confirmed_balls, frame, True)
         self.__draw_course(frame)
         self.__draw_robot(frame)
-
         self.__draw_target(frame)
         cv2.imshow('Frame', frame)
         if cv2.waitKey(1) == ord('q'):
             cv2.destroyAllWindows()
-        return frame
+    
 
     def __find_robot_origin(self, frame):
         lower = self.__robot_origin_lower_color
@@ -161,7 +171,7 @@ class CVInterface:
         return lines
 
 
-    def __draw_balls(self, keypoints, frame):
+    def __draw_balls(self, keypoints, frame, confirmed_highlight = False):
         font                   = cv2.FONT_HERSHEY_SIMPLEX
         fontScale              = 1
         fontColor              = (255,0,0)
@@ -176,7 +186,7 @@ class CVInterface:
                 radius = int(np.uint16(point.size)/2)
                 
                 
-                cv2.circle(frame, (x,y),radius,(0,255,0),2)
+                cv2.circle(frame, (x,y),radius,(0,255,0) if not confirmed_highlight else (255, 0, 0),2)
                 # draw the center of the circle
                 cv2.circle(frame,(x,y ),2,(0,0,255),3)
                 cv2.putText(frame,'Ball',
@@ -190,19 +200,19 @@ class CVInterface:
     def __draw_target(self,frame):
         font                   = cv2.FONT_HERSHEY_SIMPLEX
         fontScale              = 1
-        fontColor              = (255,0,0)
+        fontColor              = (0,0,255)
         thickness              = 3
         lineType               = 2
         if self.target_pos is not None:
         
             x = np.uint16(self.target_pos[0])
             y = np.uint16(self.target_pos[1])
-            radius = int(5)
+            radius = int(15)
             
             
             cv2.circle(frame, (x,y),radius,(255,0,0),2)
             # draw the center of the circle
-            cv2.circle(frame,(x,y ),2,(255,0,0),3)
+            cv2.circle(frame,(x,y ),2,(0,0,255),3)
             cv2.putText(frame,'Target',
                 (x,y),
                 font,
@@ -256,7 +266,26 @@ class CVInterface:
         cv2.line(frame,(self.bottom_left[0], self.bottom_left[1]),(self.bottom_right[0], self.bottom_right[1]),(0,255,0),5)
         cv2.line(frame,(self.bottom_left[0], self.bottom_left[1]),(self.top_left[0], self.top_left[1]),(0,255,0),5)
         cv2.line(frame,(self.top_right[0], self.top_right[1]),(self.bottom_right[0], self.bottom_right[1]),(0,255,0),5)
-    
+        cv2.circle(frame, self.left_goal,15,(255,255,0),2)
+        cv2.circle(frame, (self.left_goal[0] + self.__deposit_distance, self.left_goal[1]),15,(255,255,0),2)
+        # draw the center of the circle
+        cv2.putText(frame,'Left goal',
+            self.left_goal,
+            font,
+            fontScale,
+            fontColor,
+            thickness,
+            lineType)
+        cv2.circle(frame, self.right_goal,15,(255,255,0),2)
+        cv2.circle(frame, (self.right_goal[0] - self.__deposit_distance, self.right_goal[1]),15,(255,255,0),2)
+        # draw the center of the circle
+        cv2.putText(frame,'Right goal',
+            self.right_goal,
+            font,
+            fontScale,
+            fontColor,
+            thickness,
+            lineType)
     def __draw_robot(self, frame):
 
         if(self.robot is None):
@@ -300,6 +329,12 @@ class CVInterface:
                 fontColor,
                 thickness,
                 lineType)
+        if self.projection is not None:
+            cv2.circle(frame, (int(self.projection["r_front"][0]), int(self.projection["r_front"][1])),25,(0,255,255),2)
+            cv2.circle(frame, (int(self.projection["r_front"][0]), int(self.projection["r_front"][1])),25,(0,255,255),2)
+            cv2.circle(frame, (int(self.projection["r_center"][0]), int(self.projection["r_center"][1])),25,(0,255,255),2)
+            cv2.circle(frame, (int(self.projection["r_center"][0]), int(self.projection["r_center"][1])),25,(0,255,255),2)
+            
 
     def get_robot_position_and_rotation(self):
         frame = self.__cap_frame()
@@ -309,7 +344,27 @@ class CVInterface:
         direction = robot_direction_candidates[0] if len(robot_direction_candidates) > 0 else None
         data = {"origin": origin.pt if origin is not None else None, "direction": direction.pt if direction is not None else None}
         self.robot = {"origin": origin, "direction": direction}
+        self.__update_drawing(frame)
         return data
+    
+    def get_ball_positions_across_frames(self, frame_count):
+        confirmed_balls = []
+        ball_equality_threshold = 10
+        for i in range(frame_count):
+            new_detections = self.get_ball_positions()
+            if i == 0:
+                confirmed_balls = new_detections
+                continue
+            new_confirmations = []
+            for ball in confirmed_balls:
+                for new_ball in new_detections:
+                    if abs(new_ball[0] - ball[0]) < ball_equality_threshold and abs(new_ball[1] - ball[1]) < ball_equality_threshold:
+                        new_confirmations.append(new_ball)
+            confirmed_balls = new_confirmations
+        return confirmed_balls
+                        
+
+
 
 
     def get_ball_positions(self):
@@ -318,8 +373,16 @@ class CVInterface:
         blur = cv2.GaussianBlur(gray, self.__gaussian_blur, cv2.BORDER_DEFAULT)
         negative = cv2.bitwise_not(blur)
         keypoints = self.__ball_detector.detect(negative)
+        for keypoint in keypoints:
+            if not self.top_left[0] < np.uint16(keypoint.pt[0]) < self.top_right[0]:
+                keypoints.remove(keypoint)
+                continue
+            if not self.top_left[1] < np.uint16(keypoint.pt[1]) < self.bottom_left[1]:
+                keypoints.remove(keypoint)
         ball_positions = [(np.uint16(point.pt[0]), np.uint16(point.pt[1])) for point in keypoints]
         self.ball_pos = keypoints
+
+        self.__update_drawing(frame)
         return ball_positions
 
 
@@ -405,6 +468,7 @@ class CVInterface:
                             self.bottom_left[0] = start_x # bottom left x
                         if end_x > self.bottom_right[0]:
                             self.bottom_right[0] = end_x # bottom right x
+        self.__update_drawing(frame)
         return {
             "top_left": self.top_left,
             "top_right": self.top_right,
@@ -431,12 +495,17 @@ class CVInterface:
 
 
     def get_goals(self):
-        """
-        This method should return the goal positions.
-        (Implementation details will depend on the specific vision system)
-        """
-        pass
+        global top_left, bottom_left, top_right, bottom_right
+        left_goal_center = (int((self.top_left[0]+self.bottom_left[0])/2), int(self.top_left[1]-((self.top_left[1]-self.bottom_left[1])/2)))
+        right_goal_center = (int((self.top_right[0]+self.bottom_right[0])/2), int(self.top_right[1]-((self.top_right[1]-self.bottom_right[1])/2)))
+        self.left_goal = left_goal_center
+        self.right_goal = right_goal_center
+        return (left_goal_center, right_goal_center)
 
+
+    def get_center(self):
+        frame = self.__cap_frame()
+        return (int(frame.shape[1]/2), int(frame.shape[0]/2))
 ''' Example usage
 inter = CVInterface(0)
 print(inter.get_robot_position_and_rotation())
