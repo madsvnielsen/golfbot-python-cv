@@ -603,7 +603,7 @@ def start():
         #draw_eggs(centerPoint,frame)
         draw_balls2(keypoints, frame)
         draw_course(frame)
-        #draw_cross(frame)
+        draw_cross(frame)
         ball_positions = cv.get_ball_positions()
         if len(ball_positions) >= 2:
             distance = euclidean_distance(ball_positions[0], ball_positions[1])
