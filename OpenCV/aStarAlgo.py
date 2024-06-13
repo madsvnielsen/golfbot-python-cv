@@ -164,9 +164,12 @@ def a_star_search(grid, src, dest):
     if not found_dest:
         print("Failed to find the destination cell")
 
+
 # Driver Code
-
-
+# srcArr is robot position best guess it should be getRobotPosition(cv, boundrypixel)
+# Guess we should get the center of the robot
+# blockArr is the coordinates where robot can't drive
+# destArr is the coordinates of the balls
 def robot_navigation(blockArr, destArr, srcArr):
     # Define the grid (1 for unblocked, 0 for blocked)
     grid = [[1 for _ in range(COL)] for _ in range(ROW)]
