@@ -12,25 +12,26 @@ H = np.matrix([[-4.95507336e-03,  9.86068684e-01,  3.47332870e+02],
 
 
 def convert_to_normalized(pixel_coords, square_bottom_left, square_top_right):
-        
-        square_dimensions_cm = (180, 120)
-        pixel_x, pixel_y = (pixel_coords[0], pixel_coords[1])
-        square_width_pixels = square_top_right[0] - square_bottom_left[0]
-        square_height_pixels = square_top_right[1] - square_bottom_left[1]
 
-        # Calculate the size of one unit increment in centimeters
-        one_unit_increment_cm_width = square_dimensions_cm[0] / square_width_pixels
-        one_unit_increment_cm_height = square_dimensions_cm[1] / square_height_pixels
+    square_dimensions_cm = (180, 120)
+    pixel_x, pixel_y = (pixel_coords[0], pixel_coords[1])
+    square_width_pixels = square_top_right[0] - square_bottom_left[0]
+    square_height_pixels = square_top_right[1] - square_bottom_left[1]
 
-        # Subtract the bottom-left corner of the square from the pixel coordinates
-        relative_x = pixel_x - square_bottom_left[0]
-        relative_y = pixel_y - square_bottom_left[1]
+    # Calculate the size of one unit increment in centimeters
+    one_unit_increment_cm_width = square_dimensions_cm[0] / square_width_pixels
+    one_unit_increment_cm_height = square_dimensions_cm[1] / \
+        square_height_pixels
 
-        # Normalize the coordinates
-        normalized_x = relative_x * one_unit_increment_cm_width
-        normalized_y = relative_y * one_unit_increment_cm_height
+    # Subtract the bottom-left corner of the square from the pixel coordinates
+    relative_x = pixel_x - square_bottom_left[0]
+    relative_y = pixel_y - square_bottom_left[1]
 
-        return normalized_x, normalized_y
+    # Normalize the coordinates
+    normalized_x = relative_x * one_unit_increment_cm_width
+    normalized_y = relative_y * one_unit_increment_cm_height
+
+    return normalized_x, normalized_y
 
 
 def convert_to_pixel(normalized_coords, square_bottom_left, square_top_right):
@@ -41,7 +42,8 @@ def convert_to_pixel(normalized_coords, square_bottom_left, square_top_right):
 
     # Calculate the size of one unit increment in centimeters
     one_unit_increment_cm_width = square_dimensions_cm[0] / square_width_pixels
-    one_unit_increment_cm_height = square_dimensions_cm[1] / square_height_pixels
+    one_unit_increment_cm_height = square_dimensions_cm[1] / \
+        square_height_pixels
 
     # Convert normalized coordinates back to relative pixel coordinates
     relative_x = normalized_x / one_unit_increment_cm_width
@@ -54,24 +56,23 @@ def convert_to_pixel(normalized_coords, square_bottom_left, square_top_right):
     return pixel_x, pixel_y
 
 
-
-
-
 def find_robot_direction_and_angle(center_coords, front_coords):
-        # Calculate the vector representing the direction the robot is facing
-        direction = (front_coords[0] - center_coords[0], front_coords[1] - center_coords[1])
-        '''
+    # Calculate the vector representing the direction the robot is facing
+    direction = (front_coords[0] - center_coords[0],
+                 front_coords[1] - center_coords[1])
+    '''
         # Calculate the angle between the direction vector and the x-axis
         angle = math.degrees(math.atan2(direction[1], direction[0]))
         if angle < 0:
             angle += 360  # Ensure the angle is positive
         '''
-        return direction
+    return direction
 
 
 # Function to calculate Euclidean distance between two points
 def euclidean_distance(coord1, coord2):
     return math.sqrt((coord1[0] - coord2[0]) ** 2 + (coord1[1] - coord2[1]) ** 2)
+
 
 def angle_between(v1, v2):
     radians = math.atan2(v2[1], v2[0]) - math.atan2(v1[1], v1[0])
@@ -84,22 +85,25 @@ def angle_between(v1, v2):
 
 
 def getRobotPosition(cv, boundrypixel):
-    robotpixel=cv.get_robot_position_and_rotation()
-    
+    robotpixel = cv.get_robot_position_and_rotation()
+
     print("Robot pixel", robotpixel)
-    if(robotpixel["origin"] == None or robotpixel["direction"] == None):
+    if (robotpixel["origin"] == None or robotpixel["direction"] == None):
         return None, None, None
-    robotcenter= convert_to_normalized(robotpixel["origin"],boundrypixel["bottom_left"], boundrypixel["top_right"])
-    robotfront= convert_to_normalized(robotpixel["direction"],boundrypixel["bottom_left"], boundrypixel["top_right"])
-    
-    return robotcenter, robotfront, find_robot_direction_and_angle(robotcenter,robotfront)
+    robotcenter = convert_to_normalized(
+        robotpixel["origin"], boundrypixel["bottom_left"], boundrypixel["top_right"])
+    robotfront = convert_to_normalized(
+        robotpixel["direction"], boundrypixel["bottom_left"], boundrypixel["top_right"])
+
+    return robotcenter, robotfront, find_robot_direction_and_angle(robotcenter, robotfront)
 
 
 # Function to project points using homography matrix
 def project_points_to_ground_plane(points, H):
     points = np.array(points)
     if points.ndim == 1:
-        points = points[np.newaxis, :]  # Convert to 2D array if it's a single point
+        # Convert to 2D array if it's a single point
+        points = points[np.newaxis, :]
 
     # Add ones to the points (homogeneous coordinates)
     points = np.concatenate([points, np.ones((points.shape[0], 1))], axis=1)
@@ -108,35 +112,37 @@ def project_points_to_ground_plane(points, H):
     projected_points = H.dot(points.T).T
 
     # Normalize the points
-    projected_points = projected_points[:, :2] / projected_points[:, 2, np.newaxis]
+    projected_points = projected_points[:,
+        :2] / projected_points[:, 2, np.newaxis]
 
     return projected_points
 
 
-
-
 def start():
-    cv =CVInterface(1)
+    cv = CVInterface(1)
     server = Server()
-    boundrypixel= cv.get_course_boundary()
+    boundrypixel = cv.get_course_boundary()
 
     active_target = None
     search_mode = True
-    
+
     assumed_balls_in_mouth = 0
     pickup_threshold = 5
 
-    
     while True:
         if search_mode:
              active_target, target_pixels = acquireTargetBall(cv, boundrypixel)
-             cv.target_pos = target_pixels  
+             cv.target_pos = target_pixels
              if active_target != None:
                 search_mode = False
                 server.send_key_input("start")
              else:
                 continue
         robotcenter, robotfront, robotDir = getRobotPosition(cv, boundrypixel)
+        if robotcenter == None:
+            continue
+        vector_to_active_target = (
+            active_target[0] - robotcenter[0], active_target[1] - robotcenter[1])
         cv.get_goals()
         
         if robotcenter == None: continue
@@ -154,6 +160,7 @@ def start():
         distance_to_target = euclidean_distance(active_target, robotfront)
         origin_distance_to_target = euclidean_distance(active_target, robotcenter)
         print("DISTANCE: " + str(distance_to_target))
+
         
         if min([distance_to_target, origin_distance_to_target]) < pickup_threshold:
             assumed_balls_in_mouth += 1
@@ -164,22 +171,19 @@ def start():
                 assumed_balls_in_mouth = 0
                 deposit_balls(cv, boundrypixel, server)
             continue
-            
 
-
-
-        #calculate angle to turn
+        # calculate angle to turn
         angle_to_turn = angle_between((robotDir), vector_to_active_target)
         print(angle_to_turn)
         turn_in_seconds = abs((angle_to_turn/90)*0.85)
         if turn_in_seconds < 0.1:
             turn_in_seconds = 0.1
-        
+
         if 3 < angle_to_turn < 180:
-            server.send_key_input("left " + str(turn_in_seconds)+ " ")
+            server.send_key_input("left " + str(turn_in_seconds) + " ")
         elif -3 > angle_to_turn > -179:
-            server.send_key_input("right " + str(turn_in_seconds)+ " ")
-        elif abs(angle_to_turn)<3:
+            server.send_key_input("right " + str(turn_in_seconds) + " ")
+        elif abs(angle_to_turn) < 3:
             server.send_key_input("forward")
         sleep(1 + turn_in_seconds)
         '''
@@ -246,7 +250,7 @@ def deposit_balls(cv, boundrypixel, server):
 
 
 def acquireTargetBall(cv, boundrypixel):
-    ballspixelcords= cv.get_ball_positions()
+    ballspixelcords = cv.get_ball_positions()
     balls_normalized = []
     for coords in ballspixelcords:
         if coords is None:
@@ -259,18 +263,18 @@ def acquireTargetBall(cv, boundrypixel):
     if robotcenter == None: return None, None
     print("Robot direction and angle: " + str(robotDir))
 
-            # Calculate distances
-    distances = [euclidean_distance(robotcenter, coord) for coord in balls_normalized]
+    # Calculate distances
+    distances = [euclidean_distance(robotcenter, coord)
+                 for coord in balls_normalized]
 
-            # Find the index of the coordinate with the smallest distance
-    
+    # Find the index of the coordinate with the smallest distance
+
     min_distance = 10
 
     closest_distance = None
     closest_index = None
     closest_coordinate = None
     closest_pixels = None
-
 
     # Filter distances greater than min_distance and find the minimum of the filtered list
     filtered_distances = [d for d in distances if d > min_distance]
