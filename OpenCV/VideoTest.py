@@ -93,15 +93,12 @@ def correct_robot_coordinate_pixels(position, boundrypixel, cv):
 
     return new_position
 
-
 while True:
+    cv.get_cross_position()
     ball_positions = cv.get_ball_positions()
     robot_position_pixels = cv.get_robot_position_and_rotation()["origin"]
     if robot_position_pixels == None: continue
     robot_position_fixed = correct_robot_coordinate_pixels(robot_position_pixels, boundrypixel, cv)
-   
-
-
 
     
    

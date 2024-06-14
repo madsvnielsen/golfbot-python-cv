@@ -334,7 +334,6 @@ class CVInterface:
             cv2.circle(frame, (int(self.projection["r_front"][0]), int(self.projection["r_front"][1])),25,(0,255,255),2)
             cv2.circle(frame, (int(self.projection["r_center"][0]), int(self.projection["r_center"][1])),25,(0,255,255),2)
             cv2.circle(frame, (int(self.projection["r_center"][0]), int(self.projection["r_center"][1])),25,(0,255,255),2)
-            
 
     def get_robot_position_and_rotation(self):
         frame = self.__cap_frame()
@@ -483,7 +482,14 @@ class CVInterface:
         This method should return the starting line cross position.
         (Implementation details will depend on the specific vision system)
         """
-        pass
+        frame = self.__cap_frame()
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        lower_red = np.array([0, 10, 125])
+        upper_red = np.array([6, 255, 255])
+
+        mask = cv2.inRange(hsv, lower_red, upper_red)
+
+        cv2.imshow('Red Mask', mask)
 
 
     def get_egg_position(self):
