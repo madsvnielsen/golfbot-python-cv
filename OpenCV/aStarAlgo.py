@@ -27,6 +27,12 @@ COL = 120
 # Check if a cell is valid (within the grid)
 
 
+def give_gird_sizt(NewROW, NewCOL):
+    global ROW, COL
+    ROW = NewROW
+    COL = NewCOL
+
+
 def is_valid(row, col):
     return (row >= 0) and (row < ROW) and (col >= 0) and (col < COL)
 
@@ -171,10 +177,11 @@ def a_star_search(grid, src, dest):
 # Guess we should get the center of the robot
 # blockArr is the coordinates where robot can't drive
 # destArr is the coordinates of the balls
-def robot_navigation(blockArr, destArr, srcArr):
+def robot_navigation(blockArr, destArr, srcArr, inROW, inCOL):
+    give_gird_sizt(inROW, inCOL)
     # Define the grid (1 for unblocked, 0 for blocked)
-    grid = [[1 for _ in range(COL)] for _ in range(ROW)]
-
+    grid = [[1 for _ in range(inCOL)] for _ in range(inROW)]
+    print(grid)
     # coordinater for forhindringer bliver sat til 0 i grid
     for i in blockArr:
         grid[i[0]][i[1]] = 0
@@ -214,6 +221,8 @@ def robot_navigation(blockArr, destArr, srcArr):
 if __name__ == "__main__":
     blockArr = []
     # coordinater for forhindringer paa bane
+    inROW = int(input("Enter ROW size:"))
+    inCOL = int(input("Enter COL size:"))
     n = int(input("Enter the number of blocked cells: "))
     for i in range(n):
         x = int(input("Enter the x coordinate of the blocked cell: "))
@@ -235,4 +244,4 @@ if __name__ == "__main__":
     asd = is_valid(120, 180)
     if asd is False:
         print("Fuck")
-    robot_navigation(blockArr, destArr, srcArr)
+    robot_navigation(blockArr, destArr, srcArr, inROW, inCOL)
