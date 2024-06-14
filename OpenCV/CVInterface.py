@@ -6,7 +6,7 @@ import threading
 import sys
 import math
 import socket
-
+from CVGrid import CVGrid
 class CVInterface:
 
     test_mode = False
@@ -43,6 +43,9 @@ class CVInterface:
     __boundary_lower_color2 = np.array([174, 10, 125], dtype='uint8') ## Lower bound for color of the edge (HSV)
     __boundary_upper_color2 =  np.array([180, 255, 255], dtype='uint8') ## Upper bound for color of the edge (HSV)
 
+    
+    ## PATH FINDING
+    GRID = None
     """
     A class defining methods for computer vision functionalities.
     """
@@ -108,6 +111,7 @@ class CVInterface:
         return frame
 
     def __update_drawing(self, frame):
+        self.__draw_grid(frame)
         self.__draw_balls(self.ball_pos, frame)
         self.__draw_balls(self.confirmed_balls, frame, True)
         self.__draw_course(frame)
@@ -117,6 +121,66 @@ class CVInterface:
         if cv2.waitKey(1) == ord('q'):
             cv2.destroyAllWindows()
     
+    def __draw_grid(self, frame):
+        if self.GRID is None:
+            return
+
+        # Create an overlay image
+        overlay = frame.copy()
+
+        for grid_column in self.GRID.cells:
+            for cell in grid_column:
+                if cell.status == "blocked":
+                    top_left = (cell.pixel_position[0], cell.pixel_position[1])
+                    bottom_right = (cell.pixel_position[0] + self.GRID.cell_size[0], cell.pixel_position[1] + self.GRID.cell_size[1])
+
+                    # Draw filled rectangle on the overlay
+                    color = (0, 255, 0) if cell.status == "unblocked" else (0, 0, 255)
+                    cv2.rectangle(overlay, top_left, bottom_right, color, -1)
+
+        # Transparency factor (0.0 - 1.0)
+        alpha = 0.1
+
+        # Add the overlay with transparency to the original frame
+        cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
+
+
+        # Draw the contour lines on the original frame
+        for grid_column in self.GRID.cells:
+            for cell in grid_column:
+                if cell.status == "blocked":
+                    top_left = (cell.pixel_position[0], cell.pixel_position[1])
+                    bottom_right = (cell.pixel_position[0] + self.GRID.cell_size[0], cell.pixel_position[1] + self.GRID.cell_size[1])
+                    color = (0, 255, 0) if cell.status == "unblocked" else (0, 0, 255)
+                    cv2.rectangle(frame, top_left, bottom_right, color, 2)
+
+    
+    def update_grid(self):
+        frame = self.__cap_frame()
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+        self.GRID.clearBlocks()
+
+        mask1 = cv2.inRange(hsv, self.__boundary_lower_color1, self.__boundary_upper_color1)
+        mask2 = cv2.inRange(hsv, self.__boundary_lower_color2, self.__boundary_upper_color2)
+
+        combined_mask = cv2.bitwise_or(mask1, mask2)
+
+        cell_width, cell_height = self.GRID.cell_size
+        threshold = 0.25  # 50% threshold
+
+        for cell_y in range(0, combined_mask.shape[0], cell_height):
+            for cell_x in range(0, combined_mask.shape[1], cell_width):
+                cell = combined_mask[cell_y:cell_y + cell_height, cell_x:cell_x + cell_width]
+                non_zero_count = np.count_nonzero(cell)
+                total_pixels = cell.size
+
+                if non_zero_count / total_pixels >= threshold:
+                    center_x = cell_x + cell_width // 2
+                    center_y = cell_y + cell_height // 2
+                    self.GRID.block_at_pixel_position((center_x, center_y))
+        self.__draw_grid(frame)
+
 
     def __find_robot_origin(self, frame):
         lower = self.__robot_origin_lower_color
@@ -482,14 +546,8 @@ class CVInterface:
         This method should return the starting line cross position.
         (Implementation details will depend on the specific vision system)
         """
-        frame = self.__cap_frame()
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        lower_red = np.array([0, 10, 125])
-        upper_red = np.array([6, 255, 255])
+       
 
-        mask = cv2.inRange(hsv, lower_red, upper_red)
-
-        cv2.imshow('Red Mask', mask)
 
 
     def get_egg_position(self):
@@ -512,6 +570,16 @@ class CVInterface:
     def get_center(self):
         frame = self.__cap_frame()
         return (int(frame.shape[1]/2), int(frame.shape[0]/2))
+    
+
+    def initialize_grid(self, grid_size):
+        frame = self.__cap_frame()
+        self.GRID = CVGrid(grid_size, (1920,1080))
+        self.GRID.block_at_pixel_position((1920/2,1080/2))
+        self.get_cross_position()
+        self.__update_drawing(frame)
+
+
 ''' Example usage
 inter = CVInterface(0)
 print(inter.get_robot_position_and_rotation())

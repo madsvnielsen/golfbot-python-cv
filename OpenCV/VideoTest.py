@@ -9,6 +9,7 @@ boundrypixel= cv.get_course_boundary()
 
 
 cv.get_goals()
+
 def euclidean_distance(coord1, coord2):
     return math.sqrt((coord1[0] - coord2[0]) ** 2 + (coord1[1] - coord2[1]) ** 2)
 
@@ -84,37 +85,36 @@ def correct_robot_coordinate_pixels(position, boundrypixel, cv):
     new_position =  tuple(position_normal + offset_vector)
 
     position_fixed_pixels = convert_to_pixel(new_position , boundrypixel["bottom_left"], boundrypixel["top_right"])
-    cv.projection = {
-        "fixed" : position_fixed_pixels,
-        "center" : cv.get_center() 
-    }
+   
 
     print(cv.get_center())
 
     return new_position
 
-while True:
-    cv.get_cross_position()
-    ball_positions = cv.get_ball_positions()
-    robot_position_pixels = cv.get_robot_position_and_rotation()["origin"]
-    if robot_position_pixels == None: continue
-    robot_position_fixed = correct_robot_coordinate_pixels(robot_position_pixels, boundrypixel, cv)
+def loop():
+    while True:
+        cv.update_grid()
+        ball_positions = cv.get_ball_positions()
+        robot_position_pixels = cv.get_robot_position_and_rotation()["origin"]
+        if robot_position_pixels == None: continue
+        robot_position_fixed = correct_robot_coordinate_pixels(robot_position_pixels, boundrypixel, cv)
 
+        
     
-   
 
-    '''
-    if len(ball_positions) >= 2:
-        ballsNormalized1 = convert_to_normalized(ball_positions[0], boundrypixel["bottom_left"], boundrypixel["top_right"])
-        ballsNormalized2 = convert_to_normalized(ball_positions[1], boundrypixel["bottom_left"], boundrypixel["top_right"])
-        distance = euclidean_distance(ballsNormalized1, ballsNormalized2)
-        print(f"The distance between the first two balls is: {distance}")
-    else:
-        print("Less than two balls were detected.")
-    '''
-    time.sleep(1)
-
+        '''
+        if len(ball_positions) >= 2:
+            ballsNormalized1 = convert_to_normalized(ball_positions[0], boundrypixel["bottom_left"], boundrypixel["top_right"])
+            ballsNormalized2 = convert_to_normalized(ball_positions[1], boundrypixel["bottom_left"], boundrypixel["top_right"])
+            distance = euclidean_distance(ballsNormalized1, ballsNormalized2)
+            print(f"The distance between the first two balls is: {distance}")
+        else:
+            print("Less than two balls were detected.")
+        '''
+        time.sleep(1)
 
 
+cv.initialize_grid((int(1920/16), int(1080/16)))
 
+loop()
     
