@@ -70,7 +70,7 @@ def find_robot_direction_and_angle(center_coords, front_coords):
 
 
 def find_error_in_plane(robotDistanceFromCenter):
-    cameraHeight = 155
+    cameraHeight = 161
     robotHeight = 24
     angleA = math.atan(cameraHeight / robotDistanceFromCenter)
     return robotHeight/math.tan(angleA)
@@ -155,6 +155,7 @@ def start():
     cv = CVInterface(1)
     server = Server()
     boundrypixel = cv.get_course_boundary()
+    cv.initialize_grid((int(1920/32), int(1080/32)))
 
     active_target = None
     search_mode = True
@@ -179,7 +180,7 @@ def start():
         cv.get_goals()
         
         if robotcenter == None: continue
-
+        cv.update_grid()
         print("Before projection", robotcenter)
         robot_position_image = convert_to_normalized(robotcenter,boundrypixel["bottom_left"], boundrypixel["top_right"])  # Replace with actual circle center coordinates
         # Project the robot position to the ground plane
@@ -198,7 +199,7 @@ def start():
         if min([distance_to_target, origin_distance_to_target]) < pickup_threshold:
             assumed_balls_in_mouth += 1
             search_mode = True
-            server.send_key_input("forward")
+            server.send_key_input("forward 0.75")
             sleep(1)
             if assumed_balls_in_mouth > 4:
                 assumed_balls_in_mouth = 0
@@ -208,10 +209,12 @@ def start():
         # calculate angle to turn
         angle_to_turn = angle_between((robotDir), vector_to_active_target)
         print(angle_to_turn)
-        turn_in_seconds = abs((angle_to_turn/90)*0.85)
+        turn_in_seconds = abs((angle_to_turn/90)*1.5)
         if turn_in_seconds < 0.1:
             turn_in_seconds = 0.1
 
+
+        '''
         turning=False
 
         if not turning:
@@ -227,14 +230,36 @@ def start():
                 server.send_key_input("stop")
                 server.send_key_input("forward")
                 break
-            elif (3 < angle_to_turn < 180):
+            elif (20 < angle_to_turn < 180):
                 server.send_key_input("stop")
                 turning = False
-            elif (-3 > angle_to_turn > -179):
+            elif (-20 > angle_to_turn > -179):
                 server.send_key_input("stop")
                 turning = False
+        '''
 
-        sleep(0.1)
+        if 3 < angle_to_turn < 180:
+            server.send_key_input("mleft " + str(turn_in_seconds) + " ")
+        elif -3 > angle_to_turn > -179:
+            server.send_key_input("mright " + str(turn_in_seconds) + " ")
+        elif abs(angle_to_turn) < 3:
+            turn_in_seconds = distance_to_target * 0.05
+            if turn_in_seconds < 0.75:
+                turn_in_seconds = 0.75
+            server.send_key_input("forward " + str(turn_in_seconds) + " ")
+        sleep(1 + turn_in_seconds)
+
+        '''
+        if abs(angle_to_turn) < 3:
+            server.send_key_input("stop")
+            server.send_key_input("forward")
+            break
+        elif (20 < angle_to_turn < 180):
+            server.send_key_input("stop")
+            turning = False
+        elif (-20 > angle_to_turn > -179):
+            server.send_key_input("stop")
+        '''
         '''
         for keypoints in start_generator:
             balls = keypoints
@@ -282,12 +307,12 @@ def deposit_balls(cv, boundrypixel, server):
             turn_in_seconds = 0.1
         
         if 3 < angle_to_turn < 180:
-            server.send_key_input("left " + str(turn_in_seconds)+ " ")
+            server.send_key_input("mleft " + str(turn_in_seconds)+ " ")
         elif -3 > angle_to_turn > -179:
-            server.send_key_input("right " + str(turn_in_seconds)+ " ")
+            server.send_key_input("mright " + str(turn_in_seconds)+ " ")
         elif abs(angle_to_turn)<3:
             if not is_parked:
-                server.send_key_input("forward")
+                server.send_key_input("forward 0.75")
             elif not balls_deposited:
                 server.send_key_input("k")
                 balls_deposited = True

@@ -29,16 +29,24 @@ def start() -> None:
 def moveBackward() -> None:
     motors.on_for_seconds(20, 20, 0.2)
 
-def moveFoward() -> None:
-    motors.on_for_seconds(-20, -20, 0.75)
+def moveFoward(secs) -> None:
+    motors.on_for_seconds(-20, -20, secs)
 
-def turnRight(secs) -> None:
+def turnRight() -> None:
     motors.on(-10,10)
     #motors.on_for_seconds(-10, 10, secs)
 
-def turnLeft(secs) -> None:
+def turnLeft() -> None:
     motors.on(10,-10)
     #motors.on_for_seconds(10, -10, secs)
+
+def turnRightMicro(secs) -> None:
+    motors.on_for_seconds(-10, 10, secs)
+
+def turnLeftMicro(secs) -> None:
+    motors.on_for_seconds(10, -10, secs)
+
+
 def dumpBalls() -> None:
     m.stop()
     m.on_for_seconds(-40, 10)
@@ -56,11 +64,15 @@ def react(command):
     if c in [ord('q'), 27, ord('p')]:
         return
     elif c == "left": #leftkey
-      turnLeft(float(args[1]))
+      turnLeft()
     elif c == "right": #rightkey
-       turnRight(float(args[1]))
+       turnRight()
+    elif c == "mleft":
+        turnLeftMicro(float(args[1]))
+    elif c == "mright":
+        turnRightMicro(float(args[1]))
     elif c == "forward": # up key
-        moveFoward()
+        moveFoward(float(args[1]))
     elif c == "back": #down key
         moveBackward()
     elif c == "k":

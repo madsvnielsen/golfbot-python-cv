@@ -575,7 +575,6 @@ class CVInterface:
     def initialize_grid(self, grid_size):
         frame = self.__cap_frame()
         self.GRID = CVGrid(grid_size, (1920,1080))
-        self.GRID.block_at_pixel_position((1920/2,1080/2))
         self.get_cross_position()
         self.__update_drawing(frame)
 
