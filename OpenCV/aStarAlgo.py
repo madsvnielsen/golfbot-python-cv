@@ -1,4 +1,5 @@
 # Python program for A* Search Algorithm
+from bfsAlgo import bfs
 import math
 import heapq
 
@@ -33,7 +34,7 @@ def is_valid(row, col):
 
 
 def is_unblocked(grid, row, col):
-    return grid[row][col] == 1
+    return 1 <= grid[row][col] <= 20
 
 # Check if a cell is the destination
 
@@ -178,6 +179,15 @@ def robot_navigation(blockArr, destArr, srcArr):
     for i in blockArr:
         grid[i[0]][i[1]] = 0
 
+    value = 3
+    for n in destArr:
+        grid[n[0]][n[1]] = value
+        value += 1
+
+    start = tuple(srcArr[0])
+    result = bfs(grid, start)
+    destArr = result
+    print(result)
     # kopire alt andet end sidste element til srcArr og beholder robot start position
     srcArr.extend(destArr[:-1])
     # destination til maal
