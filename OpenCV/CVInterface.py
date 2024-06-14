@@ -53,6 +53,7 @@ class CVInterface:
         self.video_capture_device = video_capture_device
         self.__init_ball_detector()
         self.__init_robot_detector()
+        self.__init_egg_detector()
         self.__capture_device = cv2.VideoCapture(1)   ## Target capture device
 
     '''
@@ -76,10 +77,27 @@ class CVInterface:
         params.filterByCircularity = True  ## Should we use the circularity to filter?
         params.minCircularity = 0.4        ## Min circularity
         params.filterByConvexity = False    ## Should we use the convexity?
-        params.minConvexity = 0.8        
+        params.minConvexity = 0.8
         params.filterByInertia = True     ## Should we use inertia?
         params.minInertiaRatio = 0.4
         self.__ball_detector = cv2.SimpleBlobDetector_create(params)
+
+    def __init_egg_detector(self):
+        ## SETTINGS FOR EGG DETECTIONS
+        eggparams = cv2.SimpleBlobDetector_Params()
+        ## See this link for explanation of threshold, area, circularity, convexity and intertia
+        ## https://learnopencv.com/blob-detection-using-opencv-python-c/
+        eggparams.minThreshold = 0      ## Min threshold for when something is accepted as a ball
+        eggparams.maxThreshold = 200    ## Max threshold
+        eggparams.filterByArea = True   ## Should we use the area of the blobs to filter whether its a ball?
+        eggparams.minArea = 2600
+        eggparams.filterByCircularity = True  ## Should we use the circularity to filter?
+        eggparams.minCircularity = 0.25        ## Min circularity
+        eggparams.filterByConvexity = True    ## Should we use the convexity?
+        eggparams.minConvexity = 0.87
+        eggparams.filterByInertia = True     ## Should we use inertia?
+        eggparams.minInertiaRatio = 0.55
+        self.__egg_detector = cv2.SimpleBlobDetector_create(eggparams)
 
     def  __init_robot_detector(self):
         ## SETTINGS FOR ROBOT DETECTIONS
@@ -117,6 +135,7 @@ class CVInterface:
         self.__draw_course(frame)
         self.__draw_robot(frame)
         self.__draw_target(frame)
+        self.__draw_egg()
         cv2.imshow('Frame', frame)
         if cv2.waitKey(1) == ord('q'):
             cv2.destroyAllWindows()
@@ -209,6 +228,15 @@ class CVInterface:
         keypoints = self.__robot_detector.detect(negative)
         return keypoints
 
+    def __find_egg(self, frame):
+        frame = self.__cap_frame()
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(gray, self.__gaussian_blur, cv2.BORDER_DEFAULT)
+        negative = cv2.bitwise_not(blur)
+        keypoints = self.__ball_detector.detect(negative)
+        return keypoints
+
+
     def __find_edges(self, frame):
         lower = self.__boundary_lower_color1
         upper = self.__boundary_upper_color1
@@ -242,13 +270,11 @@ class CVInterface:
         thickness              = 3
         lineType               = 2
         if keypoints is not None:
-            
             for point in keypoints:
                 # draw the outer circle
                 x = np.uint16(point.pt[0])
                 y = np.uint16(point.pt[1])
                 radius = int(np.uint16(point.size)/2)
-                
                 
                 cv2.circle(frame, (x,y),radius,(0,255,0) if not confirmed_highlight else (255, 0, 0),2)
                 # draw the center of the circle
@@ -268,7 +294,6 @@ class CVInterface:
         thickness              = 3
         lineType               = 2
         if self.target_pos is not None:
-        
             x = np.uint16(self.target_pos[0])
             y = np.uint16(self.target_pos[1])
             radius = int(15)
@@ -284,7 +309,24 @@ class CVInterface:
                 fontColor,
                 thickness,
                 lineType)
-                
+    def __draw_egg(self, frame):
+        font                   = cv2.FONT_HERSHEY_SIMPLEX
+        fontScale              = 1
+        fontColor              = (255,255,0)
+        thickness              = 3
+        lineType               = 2
+
+        keypoints = self.__find_egg(frame)
+
+        # Draw keypoints on the frame
+        for kp in keypoints:
+            x, y = int(kp.pt[0]), int(kp.pt[1])
+            radius = int(kp.size / 2)
+            cv2.circle(frame, (x, y), radius, (0, 255, 255), thickness, lineType)
+            cv2.putText(frame, 'Egg', (x, y), font, fontScale, fontColor, thickness, lineType)
+
+        return frame
+
     def __draw_course(self, frame):
         font                   = cv2.FONT_HERSHEY_SIMPLEX
         bottomLeftCornerOfText = (10,500)
