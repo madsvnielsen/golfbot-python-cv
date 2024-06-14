@@ -1,3 +1,4 @@
+
 import socket
 
 from ev3dev2.auto import *
@@ -11,7 +12,8 @@ gyro =GyroSensor(INPUT_1)
 motors.gyro =gyro
 motors.gyro.calibrate()
 #target_host = "192.168.4.170" # Change this to the IP address of your server
-target_host = "172.20.10.13"
+#target_host = "172.20.10.13"
+target_host = "192.168.75.48"
 target_port = 27700 # Change this to the port of your server
 
 # create a socket
@@ -20,17 +22,23 @@ client.settimeout(5)
 # connect to the server
 client.connect((target_host, target_port))
 
+
+def start() -> None:
+    m.on(100)
+
 def moveBackward() -> None:
-    motors.on_for_seconds(-20, -20, 0.3)
+    motors.on_for_seconds(20, 20, 0.2)
 
 def moveFoward() -> None:
-    motors.on_for_seconds(20, 20, 0.3)
+    motors.on_for_seconds(-20, -20, 0.75)
 
-def turnRight() -> None:
-    motors.on_for_seconds(-20, 20, 0.3)
+def turnRight(secs) -> None:
+    motors.on(-10,10)
+    #motors.on_for_seconds(-10, 10, secs)
 
-def turnLeft() -> None:
-    motors.on_for_seconds(20, -20, 0.3)
+def turnLeft(secs) -> None:
+    motors.on(10,-10)
+    #motors.on_for_seconds(10, -10, secs)
 def dumpBalls() -> None:
     m.stop()
     m.on_for_seconds(-40, 10)
@@ -40,21 +48,27 @@ def stop() -> None:
     m.stop()
     motors.stop()
 
-def react(c):
+
+def react(command):
     global speed, turn
+    args = command.split(" ")
+    c = args[0]
     if c in [ord('q'), 27, ord('p')]:
         return
     elif c == "left": #leftkey
-      turnLeft()
+      turnLeft(float(args[1]))
     elif c == "right": #rightkey
-       turnRight()
+       turnRight(float(args[1]))
     elif c == "forward": # up key
         moveFoward()
     elif c == "back": #down key
         moveBackward()
     elif c == "k":
         dumpBalls()
-
+    elif c == "stop":
+        stop()
+    elif c == "start":
+        start()
 # receive
 while True:
     try:
@@ -69,6 +83,4 @@ while True:
     except socket.timeout:  # Handle timeout
         pass
 # send
-
-
 

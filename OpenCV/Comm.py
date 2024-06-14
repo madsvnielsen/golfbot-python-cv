@@ -1,5 +1,5 @@
 import math
-from time import sleep
+from time import sleep, time
 
 import numpy as np
 
@@ -212,13 +212,29 @@ def start():
         if turn_in_seconds < 0.1:
             turn_in_seconds = 0.1
 
-        if 3 < angle_to_turn < 180:
-            server.send_key_input("left " + str(turn_in_seconds) + " ")
-        elif -3 > angle_to_turn > -179:
-            server.send_key_input("right " + str(turn_in_seconds) + " ")
-        elif abs(angle_to_turn) < 3:
-            server.send_key_input("forward")
-        sleep(1 + turn_in_seconds)
+        turning=False
+
+        if not turning:
+            if 3 < angle_to_turn < 180:
+                server.send_key_input("left " + str(turn_in_seconds) + " ")
+            elif -3 > angle_to_turn > -179:
+                server.send_key_input("right " + str(turn_in_seconds) + " ")
+            elif abs(angle_to_turn) < 3:
+                server.send_key_input("forward")
+            sleep(1 + turn_in_seconds)
+        else:
+            if abs(angle_to_turn) < 3:
+                server.send_key_input("stop")
+                server.send_key_input("forward")
+                break
+            elif (3 < angle_to_turn < 180):
+                server.send_key_input("stop")
+                turning = False
+            elif (-3 > angle_to_turn > -179):
+                server.send_key_input("stop")
+                turning = False
+
+        sleep(0.1)
         '''
         for keypoints in start_generator:
             balls = keypoints
