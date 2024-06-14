@@ -1,4 +1,5 @@
 # Python program for A* Search Algorithm
+from bfsAlgo import bfs
 import math
 import heapq
 
@@ -26,6 +27,12 @@ COL = 120
 # Check if a cell is valid (within the grid)
 
 
+def give_gird_sizt(NewROW, NewCOL):
+    global ROW, COL
+    ROW = NewROW
+    COL = NewCOL
+
+
 def is_valid(row, col):
     return (row >= 0) and (row < ROW) and (col >= 0) and (col < COL)
 
@@ -33,7 +40,7 @@ def is_valid(row, col):
 
 
 def is_unblocked(grid, row, col):
-    return grid[row][col] == 1
+    return 1 <= grid[row][col] <= 20
 
 # Check if a cell is the destination
 
@@ -170,14 +177,24 @@ def a_star_search(grid, src, dest):
 # Guess we should get the center of the robot
 # blockArr is the coordinates where robot can't drive
 # destArr is the coordinates of the balls
-def robot_navigation(blockArr, destArr, srcArr):
+def robot_navigation(blockArr, destArr, srcArr, inROW, inCOL):
+    give_gird_sizt(inROW, inCOL)
     # Define the grid (1 for unblocked, 0 for blocked)
-    grid = [[1 for _ in range(COL)] for _ in range(ROW)]
-
+    grid = [[1 for _ in range(inCOL)] for _ in range(inROW)]
+    print(grid)
     # coordinater for forhindringer bliver sat til 0 i grid
     for i in blockArr:
         grid[i[0]][i[1]] = 0
 
+    value = 3
+    for n in destArr:
+        grid[n[0]][n[1]] = value
+        value += 1
+
+    start = tuple(srcArr[0])
+    result = bfs(grid, start)
+    destArr = result
+    print(result)
     # kopire alt andet end sidste element til srcArr og beholder robot start position
     srcArr.extend(destArr[:-1])
     # destination til maal
@@ -204,6 +221,8 @@ def robot_navigation(blockArr, destArr, srcArr):
 if __name__ == "__main__":
     blockArr = []
     # coordinater for forhindringer paa bane
+    inROW = int(input("Enter ROW size:"))
+    inCOL = int(input("Enter COL size:"))
     n = int(input("Enter the number of blocked cells: "))
     for i in range(n):
         x = int(input("Enter the x coordinate of the blocked cell: "))
@@ -225,4 +244,4 @@ if __name__ == "__main__":
     asd = is_valid(120, 180)
     if asd is False:
         print("Fuck")
-    robot_navigation(blockArr, destArr, srcArr)
+    robot_navigation(blockArr, destArr, srcArr, inROW, inCOL)

@@ -34,12 +34,14 @@ class AstarAlgoTest(unittest.TestCase):
         blockArr = [(10, 10), (11, 10), (12, 10)]
         destArr = [(1, 1), (5, 5)]
         srcArr = [(0, 0)]
+        inROW = 120
+        inCOL = 180
 
         old_stdout = sys.stdout
         sys.stdout = StringIO()
 
         try:
-            robot_navigation(blockArr, destArr, srcArr)
+            robot_navigation(blockArr, destArr, srcArr, inROW, inCOL)
             output = sys.stdout.getvalue()
             self.assertIn("The destination cell is found", output)
         finally:
