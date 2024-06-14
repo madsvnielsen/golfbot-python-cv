@@ -92,8 +92,12 @@ def correct_robot_coordinate_pixels(position, boundrypixel, cv):
     return new_position
 
 def loop():
+    i = 0
     while True:
-        cv.update_grid()
+        i += 1
+        if i == 30:
+            cv.update_grid()
+            i = 0
         ball_positions = cv.get_ball_positions()
         robot_position_pixels = cv.get_robot_position_and_rotation()["origin"]
         if robot_position_pixels == None: continue
@@ -111,7 +115,7 @@ def loop():
         else:
             print("Less than two balls were detected.")
         '''
-        time.sleep(1)
+        
 
 
 cv.initialize_grid((int(1920/16), int(1080/16)))

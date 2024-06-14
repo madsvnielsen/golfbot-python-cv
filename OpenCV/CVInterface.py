@@ -27,6 +27,8 @@ class CVInterface:
     left_goal = (0,0)
     right_goal = (0,0)
 
+    egg_keypoints = []
+
     __deposit_distance = 150
 
 ## BOUNDARY DETECTION (for detecting edges)
@@ -73,7 +75,7 @@ class CVInterface:
         params.maxThreshold = 200    ## Max threshold
         params.filterByArea = True   ## Should we use the area of the blobs to filter whether its a ball?
         params.minArea = 300       ## Potential setting for that balls needs to have an area greater than x
-        params.maxArea = 650         ## If the blobs area is bigger than this, it will not be detected as a ball
+        params.maxArea = 850         ## If the blobs area is bigger than this, it will not be detected as a ball
         params.filterByCircularity = True  ## Should we use the circularity to filter?
         params.minCircularity = 0.4        ## Min circularity
         params.filterByConvexity = False    ## Should we use the convexity?
@@ -88,9 +90,10 @@ class CVInterface:
         ## See this link for explanation of threshold, area, circularity, convexity and intertia
         ## https://learnopencv.com/blob-detection-using-opencv-python-c/
         eggparams.minThreshold = 0      ## Min threshold for when something is accepted as a ball
-        eggparams.maxThreshold = 200    ## Max threshold
+        eggparams.maxThreshold = 200      ## Min threshold for when something is accepted as a ball
         eggparams.filterByArea = True   ## Should we use the area of the blobs to filter whether its a ball?
-        eggparams.minArea = 2600
+        eggparams.minArea = 2500
+        eggparams.maxArea = 3500
         eggparams.filterByCircularity = True  ## Should we use the circularity to filter?
         eggparams.minCircularity = 0.25        ## Min circularity
         eggparams.filterByConvexity = True    ## Should we use the convexity?
@@ -135,7 +138,7 @@ class CVInterface:
         self.__draw_course(frame)
         self.__draw_robot(frame)
         self.__draw_target(frame)
-        self.__draw_egg()
+        self.__draw_egg(frame)
         cv2.imshow('Frame', frame)
         if cv2.waitKey(1) == ord('q'):
             cv2.destroyAllWindows()
@@ -154,7 +157,7 @@ class CVInterface:
                     bottom_right = (cell.pixel_position[0] + self.GRID.cell_size[0], cell.pixel_position[1] + self.GRID.cell_size[1])
 
                     # Draw filled rectangle on the overlay
-                    color = (0, 255, 0) if cell.status == "unblocked" else (0, 0, 255)
+                    color = (0, 255, 0) if cell.status == "unblocked" else (255, 0, 255)
                     cv2.rectangle(overlay, top_left, bottom_right, color, -1)
 
         # Transparency factor (0.0 - 1.0)
@@ -170,7 +173,7 @@ class CVInterface:
                 if cell.status == "blocked":
                     top_left = (cell.pixel_position[0], cell.pixel_position[1])
                     bottom_right = (cell.pixel_position[0] + self.GRID.cell_size[0], cell.pixel_position[1] + self.GRID.cell_size[1])
-                    color = (0, 255, 0) if cell.status == "unblocked" else (0, 0, 255)
+                    color = (0, 255, 0) if cell.status == "unblocked" else (255, 0, 255)
                     cv2.rectangle(frame, top_left, bottom_right, color, 2)
 
     
@@ -179,7 +182,12 @@ class CVInterface:
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
         self.GRID.clearBlocks()
+        self.__block_egg_positions()
+        self.block_cross_and_boundary(hsv)
+        
+        self.__draw_grid(frame)
 
+    def block_cross_and_boundary(self, hsv):
         mask1 = cv2.inRange(hsv, self.__boundary_lower_color1, self.__boundary_upper_color1)
         mask2 = cv2.inRange(hsv, self.__boundary_lower_color2, self.__boundary_upper_color2)
 
@@ -198,7 +206,6 @@ class CVInterface:
                     center_x = cell_x + cell_width // 2
                     center_y = cell_y + cell_height // 2
                     self.GRID.block_at_pixel_position((center_x, center_y))
-        self.__draw_grid(frame)
 
 
     def __find_robot_origin(self, frame):
@@ -228,13 +235,31 @@ class CVInterface:
         keypoints = self.__robot_detector.detect(negative)
         return keypoints
 
-    def __find_egg(self, frame):
+    def __find_egg(self):
         frame = self.__cap_frame()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         blur = cv2.GaussianBlur(gray, self.__gaussian_blur, cv2.BORDER_DEFAULT)
         negative = cv2.bitwise_not(blur)
-        keypoints = self.__ball_detector.detect(negative)
-        return keypoints
+        keypoints = self.__egg_detector.detect(negative)
+        self.egg_keypoints = keypoints
+
+    def __block_egg_positions(self):
+        self.__find_egg()        
+        for kp in self.egg_keypoints:
+            x_center, y_center = int(kp.pt[0]), int(kp.pt[1])
+            radius = int(kp.size // 2)
+            
+            # Calculate the bounding box of the region around the keypoint
+            x_start = max(0, x_center - radius)
+            x_end = min(self.GRID.frame_size[0], x_center + radius)
+            y_start = max(0, y_center - radius)
+            y_end = min(self.GRID.frame_size[1], y_center + radius)
+            
+            # Iterate through the bounding box and call block_at_pixel_position for each pixel
+            for y in range(y_start, y_end):
+                for x in range(x_start, x_end):
+                    if (x - x_center) ** 2 + (y - y_center) ** 2 <= radius ** 2:
+                        self.GRID.block_at_pixel_position((x, y))
 
 
     def __find_edges(self, frame):
@@ -316,16 +341,13 @@ class CVInterface:
         thickness              = 3
         lineType               = 2
 
-        keypoints = self.__find_egg(frame)
 
         # Draw keypoints on the frame
-        for kp in keypoints:
+        for kp in self.egg_keypoints:
             x, y = int(kp.pt[0]), int(kp.pt[1])
             radius = int(kp.size / 2)
             cv2.circle(frame, (x, y), radius, (0, 255, 255), thickness, lineType)
             cv2.putText(frame, 'Egg', (x, y), font, fontScale, fontColor, thickness, lineType)
-
-        return frame
 
     def __draw_course(self, frame):
         font                   = cv2.FONT_HERSHEY_SIMPLEX
@@ -617,8 +639,7 @@ class CVInterface:
     def initialize_grid(self, grid_size):
         frame = self.__cap_frame()
         self.GRID = CVGrid(grid_size, (1920,1080))
-        self.get_cross_position()
-        self.__update_drawing(frame)
+        self.update_grid()
 
 
 ''' Example usage
