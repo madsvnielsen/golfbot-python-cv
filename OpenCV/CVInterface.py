@@ -484,13 +484,16 @@ class CVInterface:
         """
         frame = self.__cap_frame()
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        lower_red = np.array([0, 10, 125])
-        upper_red = np.array([6, 255, 255])
 
-        mask = cv2.inRange(hsv, lower_red, upper_red)
+        mask1 = cv2.inRange(hsv, self.__boundary_lower_color1, self.__boundary_upper_color1)
+        mask2 = cv2.inRange(hsv, self.__boundary_lower_color2, self.__boundary_upper_color2)
 
-        cv2.imshow('Red Mask', mask)
+        combined_mask = cv2.bitwise_or(mask1, mask2)
 
+        cv2.imshow('Red Mask', combined_mask)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        return
 
     def get_egg_position(self):
         """
