@@ -29,6 +29,8 @@ class CVInterface:
 
     egg_keypoints = []
 
+    waypoints = []
+
     __deposit_distance = 150
 
 ## BOUNDARY DETECTION (for detecting edges)
@@ -75,7 +77,7 @@ class CVInterface:
         params.maxThreshold = 200    ## Max threshold
         params.filterByArea = True   ## Should we use the area of the blobs to filter whether its a ball?
         params.minArea = 300       ## Potential setting for that balls needs to have an area greater than x
-        params.maxArea = 850         ## If the blobs area is bigger than this, it will not be detected as a ball
+        params.maxArea = 500         ## If the blobs area is bigger than this, it will not be detected as a ball
         params.filterByCircularity = True  ## Should we use the circularity to filter?
         params.minCircularity = 0.4        ## Min circularity
         params.filterByConvexity = False    ## Should we use the convexity?
@@ -138,6 +140,7 @@ class CVInterface:
         self.__draw_course(frame)
         self.__draw_robot(frame)
         self.__draw_target(frame)
+        self.__draw_waypoints(frame)
         self.__draw_egg(frame)
         cv2.imshow('Frame', frame)
         if cv2.waitKey(1) == ord('q'):
@@ -184,9 +187,18 @@ class CVInterface:
         self.GRID.clearBlocks()
         self.__block_egg_positions()
         self.block_cross_and_boundary(hsv)
+        self.GRID.expand_block(2)
+        self.GRID.block_out_of_bounds({
+            "top_left": self.top_left,
+            "top_right": self.top_right,
+            "bottom_right": self.bottom_right,
+            "bottom_left": self.bottom_left,
+        })
         
         self.__draw_grid(frame)
 
+    def get_grid(self):
+        return self.GRID
     def block_cross_and_boundary(self, hsv):
         mask1 = cv2.inRange(hsv, self.__boundary_lower_color1, self.__boundary_upper_color1)
         mask2 = cv2.inRange(hsv, self.__boundary_lower_color2, self.__boundary_upper_color2)
@@ -286,6 +298,22 @@ class CVInterface:
                 maxLineGap=self.__BOUND_MAXGAP
                 )
         return lines
+
+
+    def __draw_waypoints(self, frame):
+        font                   = cv2.FONT_HERSHEY_SIMPLEX
+        fontScale              = 1
+        fontColor              = (255,0,0)
+        thickness              = 3
+        lineType               = 2
+        if self.waypoints is not None:
+            for point in self.waypoints:
+                # draw the outer circle
+                x = np.uint16(point[0])
+                y = np.uint16(point[1])
+                
+                # draw the center of the circle
+                cv2.circle(frame,(x,y ),2,(160,69,236),3)
 
 
     def __draw_balls(self, keypoints, frame, confirmed_highlight = False):

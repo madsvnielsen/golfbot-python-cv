@@ -3,7 +3,7 @@ import math
 from CVInterface import CVInterface
 import time
 import numpy as np
-
+from Comm import getRobotPosition, create_navigation_route, acquireTargetBall
 cv = CVInterface(1)
 boundrypixel= cv.get_course_boundary()
 
@@ -118,7 +118,57 @@ def loop():
         
 
 
-cv.initialize_grid((int(1920/16), int(1080/16)))
+#cv.initialize_grid((int(1920/16), int(1080/16)))
 
-loop()
+
+
+
+
+
+def loop2():
+    cv = CVInterface(1)
+    boundrypixel = cv.get_course_boundary()
+    cv.initialize_grid((int(1920/32), int(1080/32)))
+
+    navigation_waypoints = []
+    actual_target = None
+
+    assumed_balls_in_mouth = 0
+    pickup_threshold = 5
+    focus_target_threshold = 30
+    target_is_ball = False
+
+    while True:
+        cv.update_grid()
+        cv.get_goals()
+        robotcenter, robotfront, robotDir = getRobotPosition(cv, boundrypixel)
+        
+        if robotcenter == None:
+            continue
+
+        if len(navigation_waypoints) == 0:
+            active_target, target_pixels = acquireTargetBall(cv, boundrypixel)
+            navigation_waypoints, target, is_ball = create_navigation_route(cv, boundrypixel, robotfront, active_target, target_pixels)
+            target_is_ball = is_ball
+            actual_target = active_target
+            print("Waypoints", navigation_waypoints)
+            continue
+        
+        vector_to_actual_target = (actual_target[0] - robotcenter[0], actual_target[1] - robotcenter[1])
+        distance_to_actual_target = euclidean_distance(actual_target, robotfront)
+
+        if abs(distance_to_actual_target < focus_target_threshold):
+            active_target = actual_target
+
+        active_target = navigation_waypoints[0]
+        vector_to_active_target = (active_target[0] - robotcenter[0], active_target[1] - robotcenter[1])
+        distance_to_target = euclidean_distance(active_target, robotfront)
+        origin_distance_to_target = euclidean_distance(active_target, robotcenter)
+        ball_positions = cv.get_ball_positions()
+
+       
+
+
     
+
+loop2()
