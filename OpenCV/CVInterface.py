@@ -58,8 +58,9 @@ class CVInterface:
         self.__init_ball_detector()
         self.__init_robot_detector()
         self.__init_egg_detector()
-        self.__capture_device = cv2.VideoCapture(1)   ## Target capture device
-
+        self.__capture_device = cv2.VideoCapture(video_capture_device, cv2.CAP_DSHOW)   ## Target capture device
+        self.__capture_device.set(cv2.CAP_PROP_FRAME_WIDTH, 640*2)
+        self.__capture_device.set(cv2.CAP_PROP_FRAME_HEIGHT, 480*2)
     '''
     def __init__(self, test_picture : str):
         self.test_mode = True
