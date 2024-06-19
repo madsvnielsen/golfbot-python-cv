@@ -29,7 +29,7 @@ def bfs(grid, start):
     directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Up, Down, Left, Right
 
     start_row, start_col = start
-    if grid[start_col][start_col] == 0:
+    if grid[start_row][start_col] == 0:
         nearest_non_zero = find_nearest_non_zero(grid, start)
         if nearest_non_zero is None:
             return []

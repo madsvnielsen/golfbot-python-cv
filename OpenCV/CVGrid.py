@@ -104,14 +104,16 @@ class CVGrid:
                     grid[x][y] = 0
 
         for i in range(len(destination)):
-            destination[i] = find_nearest_non_zero(grid, destination[1])
+            destination[i] = find_nearest_non_zero(grid, destination[i])
 
         value = 3
         for n in destination:
             grid[n[0]][n[1]] = value
             value += 1
 
-        start = tuple(source[0])
+        moved_start = find_nearest_non_zero(grid, tuple(source[0]))
+        source[0] = moved_start
+        start = moved_start
         result = bfs(grid, start)
         destArr = result
         if len(destArr) < len(source):

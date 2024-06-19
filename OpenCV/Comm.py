@@ -70,7 +70,7 @@ def find_robot_direction_and_angle(center_coords, front_coords):
 
 
 def find_error_in_plane(robotDistanceFromCenter):
-    cameraHeight = 168
+    cameraHeight = 167
     robotHeight = 24
     angleA = math.atan(cameraHeight / robotDistanceFromCenter)
     return robotHeight/math.tan(angleA)
@@ -169,6 +169,7 @@ def create_navigation_route(cv, boundrypixel, robotcenter, active_target, target
     path_in_pixels = [(cell[1], cell[0]) for cell in [grid.get_pixel_from_position(a) for a in navigation_cell_coordinates][1::3]]
     cv.waypoints = path_in_pixels
     path_in_normalized = [convert_to_normalized(cell,boundrypixel["bottom_left"], boundrypixel["top_right"]) for cell in path_in_pixels]
+    path_in_normalized.append(active_target)
     return path_in_normalized, active_target, True if not notBall else False
 
 
@@ -202,6 +203,8 @@ def start2():
             navigation_waypoints, target, is_ball = create_navigation_route(cv, boundrypixel, robotfront, active_target, target_pixels)
             target_position = target
             target_is_ball = is_ball
+            if navigation_waypoints == None:
+                navigation_waypoints = []
             continue
         
         
@@ -211,9 +214,12 @@ def start2():
 
         active_target = navigation_waypoints[0]
         focus_mode = False
+        
+        '''
         if abs(distance_to_actual_target < focus_target_threshold):
             focus_mode = True
             active_target = target_position
+        '''
 
         cv.target_pos = convert_to_pixel(active_target, boundrypixel["bottom_left"], boundrypixel["top_right"])
 
@@ -226,11 +232,12 @@ def start2():
         if min([distance_to_target, origin_distance_to_target]) < pickup_threshold:
             
             del navigation_waypoints[0]
-            if focus_mode:
-                server.send_key_input("forward 0.33")
-                sleep(1)
+            if len(navigation_waypoints) == 0:
+                #server.send_key_input("forward 0.33")
+                #sleep(1)
                 if target_is_ball:
                     assumed_balls_in_mouth += 1
+                    server.send_key_input("back")
             
             if assumed_balls_in_mouth > 4:
                 assumed_balls_in_mouth = 0

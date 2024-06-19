@@ -41,7 +41,7 @@ class CVInterface:
     __BOUND_THRESH = 30
     __BOUND_MINLEN = 50
     __BOUND_MAXGAP = 5
-    __REFRESH_BOUND_FRAME = 50  ## How many frames should the program analyze when finding the boundary?
+    __REFRESH_BOUND_FRAME = 25  ## How many frames should the program analyze when finding the boundary?
     __boundary_lower_color1 = np.array([0, 10, 125], dtype='uint8') ## Lower bound for color of the edge (HSV)
     __boundary_upper_color1 = np.array([6, 255, 255], dtype='uint8') ## Upper bound for color of the edge (HSV)
     __boundary_lower_color2 = np.array([174, 10, 125], dtype='uint8') ## Lower bound for color of the edge (HSV)
@@ -58,9 +58,12 @@ class CVInterface:
         self.__init_ball_detector()
         self.__init_robot_detector()
         self.__init_egg_detector()
+        self.__capture_device = cv2.VideoCapture(video_capture_device)   ## Target capture device
+        '''
         self.__capture_device = cv2.VideoCapture(video_capture_device, cv2.CAP_DSHOW)   ## Target capture device
         self.__capture_device.set(cv2.CAP_PROP_FRAME_WIDTH, 640*2)
         self.__capture_device.set(cv2.CAP_PROP_FRAME_HEIGHT, 480*2)
+        '''
     '''
     def __init__(self, test_picture : str):
         self.test_mode = True
@@ -188,7 +191,7 @@ class CVInterface:
         self.GRID.clearBlocks()
         self.__block_egg_positions()
         self.block_cross_and_boundary(hsv)
-        self.GRID.expand_block(2)
+        self.GRID.expand_block(3)
         self.GRID.block_out_of_bounds({
             "top_left": self.top_left,
             "top_right": self.top_right,
