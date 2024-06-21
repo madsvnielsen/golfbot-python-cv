@@ -1,5 +1,5 @@
 # Python program for A* Search Algorithm
-from bfsAlgo import bfs
+from OpenCV.bfsAlgo import bfs
 import math
 import heapq
 

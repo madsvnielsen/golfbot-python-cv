@@ -3,13 +3,8 @@ from time import sleep, time
 
 import numpy as np
 
-from CVInterface import CVInterface
-from Server1 import Server
-
-H = np.matrix([[-4.95507336e-03,  9.86068684e-01,  3.47332870e+02],
- [-1.00641543e+00, -4.58681401e-02,  1.97729987e+03],
- [ 8.01288522e-06, -5.08965362e-06,  1.00000000e+00]])
-
+from OpenCV.CVInterface import CVInterface
+from OpenCV.Server1 import Server
 
 def convert_to_normalized(pixel_coords, square_bottom_left, square_top_right):
 
@@ -55,6 +50,12 @@ def convert_to_pixel(normalized_coords, square_bottom_left, square_top_right):
 
     return pixel_x, pixel_y
 
+def find_center_between_points(point1, point2):
+    x1, y1 = point1
+    x2, y2 = point2
+    center_x = (x1 + x2) / 2
+    center_y = (y1 + y2) / 2
+    return (center_x, center_y)
 
 def find_robot_direction_and_angle(center_coords, front_coords):
     # Calculate the vector representing the direction the robot is facing
@@ -70,7 +71,7 @@ def find_robot_direction_and_angle(center_coords, front_coords):
 
 
 def find_error_in_plane(robotDistanceFromCenter):
-    cameraHeight = 167
+    cameraHeight = 178
     robotHeight = 24
     angleA = math.atan(cameraHeight / robotDistanceFromCenter)
     return robotHeight/math.tan(angleA)
@@ -166,14 +167,18 @@ def create_navigation_route(cv, boundrypixel, robotcenter, active_target, target
     if navigation_cell_coordinates is None:
         return [], None, False
     print(navigation_cell_coordinates)
-    path_in_pixels = [(cell[1], cell[0]) for cell in [grid.get_pixel_from_position(a) for a in navigation_cell_coordinates][1::3]]
+    path_in_pixels = [(cell[1], cell[0]) for cell in [grid.get_pixel_from_position(a) for a in navigation_cell_coordinates]][1::3]
     cv.waypoints = path_in_pixels
     path_in_normalized = [convert_to_normalized(cell,boundrypixel["bottom_left"], boundrypixel["top_right"]) for cell in path_in_pixels]
     path_in_normalized.append(active_target)
+    min_distance_between_waypoints = 10
+
+    if len(path_in_normalized) >= 2 and euclidean_distance(active_target, path_in_normalized[-2]) < min_distance_between_waypoints:
+        del path_in_normalized[-2]
     return path_in_normalized, active_target, True if not notBall else False
 
 
-def start2():
+def start_robot_controller():
     cv = CVInterface(1)
     server = Server()
     boundrypixel = cv.get_course_boundary()
@@ -186,13 +191,16 @@ def start2():
     pickup_threshold = 5
     focus_target_threshold = 30
     target_is_ball = False
-    
 
     server.send_key_input("start")
 
+    last_target = None
+    max_target_retries = 10
+    current_target_tries = 0
+
     while True:
         
-        cv.update_grid()
+        
         cv.get_goals()
         robotcenter, robotfront, robotDir = getRobotPosition(cv, boundrypixel)
         if robotcenter == None:
@@ -203,8 +211,11 @@ def start2():
             navigation_waypoints, target, is_ball = create_navigation_route(cv, boundrypixel, robotfront, active_target, target_pixels)
             target_position = target
             target_is_ball = is_ball
+            current_target_tries = 0
             if navigation_waypoints == None:
                 navigation_waypoints = []
+
+            cv.update_grid()
             continue
         
         
@@ -214,7 +225,18 @@ def start2():
 
         active_target = navigation_waypoints[0]
         focus_mode = False
-        
+
+        '''
+        if last_target is not None:
+            if last_target == active_target:
+                current_target_tries += 1
+            if current_target_tries > max_target_retries:
+                assumed_balls_in_mouth = 0
+                server.send_key_input("back")
+                deposit_balls(cv, boundrypixel, server)
+                current_target_tries = 0
+                continue
+        ''' 
         '''
         if abs(distance_to_actual_target < focus_target_threshold):
             focus_mode = True
@@ -223,15 +245,22 @@ def start2():
 
         cv.target_pos = convert_to_pixel(active_target, boundrypixel["bottom_left"], boundrypixel["top_right"])
 
+        robotmid = find_center_between_points(robotcenter, robotfront)
+
         vector_to_active_target = (active_target[0] - robotcenter[0], active_target[1] - robotcenter[1])
 
         distance_to_target = euclidean_distance(active_target, robotfront)
         origin_distance_to_target = euclidean_distance(active_target, robotcenter)
+        mid_distance_to_target = euclidean_distance(active_target, robotmid)
+
+        
 
         ## See if robot is at target destination
-        if min([distance_to_target, origin_distance_to_target]) < pickup_threshold:
+        robot_points = [distance_to_target, mid_distance_to_target,  origin_distance_to_target] if target_is_ball else [origin_distance_to_target]
+        if min(robot_points) < pickup_threshold:
             
             del navigation_waypoints[0]
+            current_target_tries = 0
             if len(navigation_waypoints) == 0:
                 #server.send_key_input("forward 0.33")
                 #sleep(1)
@@ -242,148 +271,37 @@ def start2():
             if assumed_balls_in_mouth > 4:
                 assumed_balls_in_mouth = 0
                 deposit_balls(cv, boundrypixel, server)
+            last_target = active_target
             continue
 
-        # calculate angle to turn
-        move_robot_towards_target(server, robotDir, vector_to_active_target, distance_to_target)
+        power_through = False #len(navigation_waypoints) == 1 and cv.get_grid().get_cell_at_position(cv.target_pos).status != "blocked"
 
-def move_robot_towards_target(server, robotDir, vector_to_active_target, distance_to_target):
+        # calculate angle to turn
+        move_robot_towards_target(server, robotDir, vector_to_active_target, distance_to_target, power_through)
+        last_target = active_target
+
+def move_robot_towards_target(server, robotDir, vector_to_active_target, distance_to_target, power_through):
     angle_to_turn = angle_between((robotDir), vector_to_active_target)
     turn_in_seconds = abs((angle_to_turn/90)*1.5)
     if turn_in_seconds < 0.1:
         turn_in_seconds = 0.1
 
-    if 3 < angle_to_turn < 180:
+    angle_threshold = 2
+
+    if angle_threshold < angle_to_turn < 180:
         server.send_key_input("mleft " + str(turn_in_seconds) + " ")
-    elif -3 > angle_to_turn > -179:
+    elif -angle_threshold > angle_to_turn > -179:
         server.send_key_input("mright " + str(turn_in_seconds) + " ")
     elif abs(angle_to_turn) < 3:
         turn_in_seconds = distance_to_target * 0.025
         if turn_in_seconds < 0.75:
             turn_in_seconds = 0.75
+        if power_through:
+            turn_in_seconds *= 2
         server.send_key_input("forward " + str(turn_in_seconds) + " ")
     sleep(1 + turn_in_seconds)
 
 
-
-
-
-def start():
-    cv = CVInterface(1)
-    server = Server()
-    boundrypixel = cv.get_course_boundary()
-    cv.initialize_grid((int(1920/32), int(1080/32)))
-
-    active_target = None
-    search_mode = True
-
-    assumed_balls_in_mouth = 0
-    pickup_threshold = 5
-
-    while True:
-        if search_mode:
-             active_target, target_pixels = acquireTargetBall(cv, boundrypixel)
-             cv.target_pos = target_pixels
-             if active_target != None:
-                search_mode = False
-                server.send_key_input("start")
-             else:
-                continue
-        robotcenter, robotfront, robotDir = getRobotPosition(cv, boundrypixel)
-        if robotcenter == None:
-            continue
-        vector_to_active_target = (
-            active_target[0] - robotcenter[0], active_target[1] - robotcenter[1])
-        cv.get_goals()
-        
-        if robotcenter == None: continue
-        cv.update_grid()
-        print("Before projection", robotcenter)
-        robot_position_image = convert_to_normalized(robotcenter,boundrypixel["bottom_left"], boundrypixel["top_right"])  # Replace with actual circle center coordinates
-        # Project the robot position to the ground plane
-        robot_position_ground = project_points_to_ground_plane(robot_position_image, H)
-        print("Robot position on the ground plane:", convert_to_normalized(robotcenter,boundrypixel["bottom_left"], boundrypixel["top_right"]))
-
-
-        vector_to_active_target = (active_target[0] - robotcenter[0], active_target[1] - robotcenter[1])
-        print("TARGET: " + str(active_target))
-        print("VECTOR: " + str(vector_to_active_target))
-        distance_to_target = euclidean_distance(active_target, robotfront)
-        origin_distance_to_target = euclidean_distance(active_target, robotcenter)
-        print("DISTANCE: " + str(distance_to_target))
-
-        
-        if min([distance_to_target, origin_distance_to_target]) < pickup_threshold:
-            assumed_balls_in_mouth += 1
-            search_mode = True
-            server.send_key_input("forward 0.35")
-            sleep(1)
-            if assumed_balls_in_mouth > 4:
-                assumed_balls_in_mouth = 0
-                deposit_balls(cv, boundrypixel, server)
-            continue
-
-        # calculate angle to turn
-        angle_to_turn = angle_between((robotDir), vector_to_active_target)
-        print(angle_to_turn)
-        turn_in_seconds = abs((angle_to_turn/90)*1.5)
-        if turn_in_seconds < 0.1:
-            turn_in_seconds = 0.1
-
-
-        '''
-        turning=False
-
-        if not turning:
-            if 3 < angle_to_turn < 180:
-                server.send_key_input("left " + str(turn_in_seconds) + " ")
-            elif -3 > angle_to_turn > -179:
-                server.send_key_input("right " + str(turn_in_seconds) + " ")
-            elif abs(angle_to_turn) < 3:
-                server.send_key_input("forward")
-            sleep(1 + turn_in_seconds)
-        else:
-            if abs(angle_to_turn) < 3:
-                server.send_key_input("stop")
-                server.send_key_input("forward")
-                break
-            elif (20 < angle_to_turn < 180):
-                server.send_key_input("stop")
-                turning = False
-            elif (-20 > angle_to_turn > -179):
-                server.send_key_input("stop")
-                turning = False
-        '''
-
-        if 3 < angle_to_turn < 180:
-            server.send_key_input("mleft " + str(turn_in_seconds) + " ")
-        elif -3 > angle_to_turn > -179:
-            server.send_key_input("mright " + str(turn_in_seconds) + " ")
-        elif abs(angle_to_turn) < 3:
-            turn_in_seconds = distance_to_target * 0.05
-            if turn_in_seconds < 0.75:
-                turn_in_seconds = 0.75
-            server.send_key_input("forward " + str(turn_in_seconds) + " ")
-        sleep(1 + turn_in_seconds)
-
-        '''
-        if abs(angle_to_turn) < 3:
-            server.send_key_input("stop")
-            server.send_key_input("forward")
-            break
-        elif (20 < angle_to_turn < 180):
-            server.send_key_input("stop")
-            turning = False
-        elif (-20 > angle_to_turn > -179):
-            server.send_key_input("stop")
-        '''
-        '''
-        for keypoints in start_generator:
-            balls = keypoints
-            print('cordinates'+balls)
-
-        robot=cv2.KeyPoint(100, 200, _size=10, _angle=0, _response=0, _octave=0, _class_id=-1)
-        '''
 
 
 
@@ -402,7 +320,7 @@ def deposit_balls(cv, boundrypixel, server):
     right_goal_distance = abs(euclidean_distance(robotcenter, right_goal))
 
     ##How far away from the goal should the robot be when depositing?
-    deposit_distance = 20
+    deposit_distance = 30
     
     parked_threshold = 10
 
@@ -435,15 +353,8 @@ def deposit_balls(cv, boundrypixel, server):
                 balls_deposited = True
                 sleep(5)
 
-        sleep(1 + turn_in_seconds)
+        sleep(0.2 + turn_in_seconds)
         
-
-
-
-    
-
-
-
 
 def acquireTargetBall(cv, boundrypixel):
     ballspixelcords = cv.get_ball_positions()
@@ -482,4 +393,3 @@ def acquireTargetBall(cv, boundrypixel):
     
     return closest_coordinate, closest_pixels
 
-start2()

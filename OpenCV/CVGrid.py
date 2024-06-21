@@ -1,5 +1,5 @@
-from bfsAlgo import bfs, find_nearest_non_zero
-from aStarAlgo import a_star_search
+from OpenCV.bfsAlgo import bfs, find_nearest_non_zero
+from OpenCV.aStarAlgo import a_star_search
 from collections import deque
 
 
@@ -147,6 +147,13 @@ class CVGrid:
             if res is not None:
                 path.extend(res)
         return path
+    
+    def get_cell_at_position(self, position):
+        cell_position = self.get_position_from_pixel(position)
+        if cell_position:
+            y, x = cell_position
+            return self.cells[y][x]
+        return None
 
 
 class CVCell:

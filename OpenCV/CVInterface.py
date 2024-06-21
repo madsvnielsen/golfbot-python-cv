@@ -6,7 +6,7 @@ import threading
 import sys
 import math
 import socket
-from CVGrid import CVGrid
+from OpenCV.CVGrid import CVGrid
 class CVInterface:
 
     test_mode = False

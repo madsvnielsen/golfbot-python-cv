@@ -1,9 +1,9 @@
 import math
 
-from CVInterface import CVInterface
+from OpenCV.CVInterface import CVInterface
 import time
 import numpy as np
-from Comm import getRobotPosition, create_navigation_route, acquireTargetBall
+from OpenCV.RobotController import getRobotPosition, create_navigation_route, acquireTargetBall
 cv = CVInterface(1)
 boundrypixel= cv.get_course_boundary()
 
@@ -128,7 +128,7 @@ def loop():
 def loop2():
     cv = CVInterface(1)
     boundrypixel = cv.get_course_boundary()
-    cv.initialize_grid((int(1920/32), int(1080/32)))
+    cv.initialize_grid((int(1920/16), int(1080/16)))
 
     navigation_waypoints = []
     actual_target = None
@@ -145,7 +145,7 @@ def loop2():
         
         if robotcenter == None:
             continue
-
+        acquireTargetBall(cv, boundrypixel)
         if len(navigation_waypoints) == 0:
             active_target, target_pixels = acquireTargetBall(cv, boundrypixel)
             navigation_waypoints, target, is_ball = create_navigation_route(cv, boundrypixel, robotfront, active_target, target_pixels)
@@ -171,4 +171,5 @@ def loop2():
 
     
 
-loop2()
+def start_video_test():
+    loop2()
