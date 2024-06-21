@@ -159,6 +159,8 @@ class find_non_zero(unittest.TestCase):
         start = (1, 1)
         expected = (1, 1)
         self.assertEqual(find_nearest_non_zero(grid, start), expected)
+        expected = (2, 2)
+        self.assertNotEqual(find_nearest_non_zero(grid, start), expected)
 
     def test_start_zero(self):
         grid = [
@@ -170,6 +172,8 @@ class find_non_zero(unittest.TestCase):
         start = (2, 1)
         expected = (1, 1)
         self.assertEqual(find_nearest_non_zero(grid, start), expected)
+        expected = (2, 2)
+        self.assertNotEqual(find_nearest_non_zero(grid, start), expected)
 
 
 if __name__ == '__main__':
