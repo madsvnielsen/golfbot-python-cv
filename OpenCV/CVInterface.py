@@ -17,6 +17,10 @@ class CVInterface:
     ## How much the image is blurred (to make detection easier)
     __gaussian_blur = (27,27)
 
+    ##Histogram equalization settings
+    clahe = cv2.createCLAHE(clipLimit=2, tileGridSize=(8, 8))
+
+
     ## Variables for for drawing frames when any of the methods are called.
     robot = None
     projection = None
@@ -62,6 +66,7 @@ class CVInterface:
         self.__init_robot_detector()
         self.__init_egg_detector()
         self.__capture_device = cv2.VideoCapture(video_capture_device)   ## Target capture device
+        self.__set_camera_properties()
         '''
         self.__capture_device = cv2.VideoCapture(video_capture_device, cv2.CAP_DSHOW)   ## Target capture device
         self.__capture_device.set(cv2.CAP_PROP_FRAME_WIDTH, 640*2)
@@ -120,7 +125,7 @@ class CVInterface:
         rparams.maxThreshold = 200
         rparams.filterByCircularity = True
         rparams.filterByArea = True
-        rparams.minArea = 500
+        rparams.minArea = 800
         rparams.minCircularity = 0.4
         rparams.filterByConvexity = True
         rparams.minConvexity = 0.87 
@@ -130,15 +135,25 @@ class CVInterface:
         self.__robot_detector = cv2.SimpleBlobDetector_create(rparams)
         self.__robot_origin_lower_color = np.array([45, 10, 10], dtype='uint8')  #Lower color of center (green circle)
         self.__robot_origin_upper_color = np.array([95, 255, 255], dtype='uint8') #Upper color of center
-        self.__robot_direction_lower_color = np.array([8, 10, 10], dtype='uint8') #Lower color of direction marker (orange)
-        self.__robot_direction_upper_color = np.array([35, 255, 255], dtype='uint8') #Upper color of direction marker
+        self.__robot_direction_lower_color = np.array([0, 100, 10], dtype='uint8') #Lower color of direction marker (orange)
+        self.__robot_direction_upper_color = np.array([40, 255, 255], dtype='uint8') #Upper color of direction marker
+    
+# Camera settings
+    def __set_camera_properties(self):
+        self.__capture_device.set(cv2.CAP_PROP_EXPOSURE, -15)   # Example value, adjust as needed
+        self.__capture_device.set(cv2.CAP_PROP_BRIGHTNESS, 100) # Example value, adjust as needed
+        self.__capture_device.set(cv2.CAP_PROP_CONTRAST, 50)   # Example value, adjust as needed
+        self.__capture_device.set(cv2.CAP_PROP_SATURATION, 50) # Example value, adjust as needed
+        self.__capture_device.set(cv2.CAP_PROP_GAIN, 0)
+    
+    
     def __cap_frame(self):
         if not self.test_mode:
             _, frame = self.__capture_device.read()
         else:
             frame = cv2.imread(self.test_picture)
         img_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        img_hsv[:, :, 2] = cv2.equalizeHist(img_hsv[:, :, 2])
+        img_hsv[:, :, 2] = self.clahe.apply(img_hsv[:, :, 2])
         frame = cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR)
         return frame
 
