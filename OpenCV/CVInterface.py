@@ -7,6 +7,9 @@ import sys
 import math
 import socket
 from OpenCV.CVGrid import CVGrid
+
+import matplotlib.path as mpath
+
 class CVInterface:
 
     test_mode = False
@@ -42,9 +45,9 @@ class CVInterface:
     __BOUND_MINLEN = 50
     __BOUND_MAXGAP = 5
     __REFRESH_BOUND_FRAME = 25  ## How many frames should the program analyze when finding the boundary?
-    __boundary_lower_color1 = np.array([0, 10, 125], dtype='uint8') ## Lower bound for color of the edge (HSV)
+    __boundary_lower_color1 = np.array([0, 50, 10], dtype='uint8') ## Lower bound for color of the edge (HSV)
     __boundary_upper_color1 = np.array([6, 255, 255], dtype='uint8') ## Upper bound for color of the edge (HSV)
-    __boundary_lower_color2 = np.array([174, 10, 125], dtype='uint8') ## Lower bound for color of the edge (HSV)
+    __boundary_lower_color2 = np.array([174, 50, 10], dtype='uint8') ## Lower bound for color of the edge (HSV)
     __boundary_upper_color2 =  np.array([180, 255, 255], dtype='uint8') ## Upper bound for color of the edge (HSV)
 
     
@@ -125,16 +128,18 @@ class CVInterface:
         rparams.maxInertiaRatio = 0.5
         ## Upper and lower colors for detection of robot  (ALL IN HSV)
         self.__robot_detector = cv2.SimpleBlobDetector_create(rparams)
-        self.__robot_origin_lower_color = np.array([45, 10, 125], dtype='uint8')  #Lower color of center (green circle)
-        self.__robot_origin_upper_color = np.array([90, 255, 255], dtype='uint8') #Upper color of center
-        self.__robot_direction_lower_color = np.array([8, 150, 125], dtype='uint8') #Lower color of direction marker (orange)
+        self.__robot_origin_lower_color = np.array([45, 10, 10], dtype='uint8')  #Lower color of center (green circle)
+        self.__robot_origin_upper_color = np.array([95, 255, 255], dtype='uint8') #Upper color of center
+        self.__robot_direction_lower_color = np.array([8, 10, 10], dtype='uint8') #Lower color of direction marker (orange)
         self.__robot_direction_upper_color = np.array([35, 255, 255], dtype='uint8') #Upper color of direction marker
     def __cap_frame(self):
         if not self.test_mode:
             _, frame = self.__capture_device.read()
         else:
             frame = cv2.imread(self.test_picture)
-        
+        img_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        img_hsv[:, :, 2] = cv2.equalizeHist(img_hsv[:, :, 2])
+        frame = cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR)
         return frame
 
     def __update_drawing(self, frame):
@@ -532,14 +537,14 @@ class CVInterface:
         blur = cv2.GaussianBlur(gray, self.__gaussian_blur, cv2.BORDER_DEFAULT)
         negative = cv2.bitwise_not(blur)
         keypoints = self.__ball_detector.detect(negative)
-        for keypoint in keypoints:
-            if not self.top_left[0] < np.uint16(keypoint.pt[0]) < self.top_right[0]:
-                keypoints.remove(keypoint)
-                continue
-            if not self.top_left[1] < np.uint16(keypoint.pt[1]) < self.bottom_left[1]:
-                keypoints.remove(keypoint)
-        ball_positions = [(np.uint16(point.pt[0]), np.uint16(point.pt[1])) for point in keypoints]
-        self.ball_pos = keypoints
+        valid_keypoints = [
+            keypoint for keypoint in keypoints
+            if self.is_within_boundary((keypoint.pt[0], keypoint.pt[1]))
+        ]
+        
+            
+        ball_positions = [(np.uint16(point.pt[0]), np.uint16(point.pt[1])) for point in valid_keypoints]
+        self.ball_pos = valid_keypoints
 
         self.__update_drawing(frame)
         return ball_positions
@@ -672,6 +677,12 @@ class CVInterface:
         frame = self.__cap_frame()
         self.GRID = CVGrid(grid_size, (1920,1080))
         self.update_grid()
+
+    
+    def is_within_boundary(self, point):
+        polygon = [self.top_left, self.top_right, self.bottom_right, self.bottom_left]
+        path = mpath.Path(polygon)
+        return path.contains_point(point)
 
 
 ''' Example usage

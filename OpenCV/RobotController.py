@@ -71,7 +71,7 @@ def find_robot_direction_and_angle(center_coords, front_coords):
 
 
 def find_error_in_plane(robotDistanceFromCenter):
-    cameraHeight = 184
+    cameraHeight = 172
     robotHeight = 24
     angleA = math.atan(cameraHeight / robotDistanceFromCenter)
     return robotHeight/math.tan(angleA)
@@ -260,8 +260,9 @@ def start_robot_controller():
                     assumed_balls_in_mouth += 1
                     slow = False
                     server.send_key_input("back")
+                    sleep(3)
             
-            if assumed_balls_in_mouth > 4 or len(cv.get_ball_positions()) == 0:
+            if assumed_balls_in_mouth > 4 or (len(cv.get_ball_positions()) == 0 and len(navigation_waypoints) == 0):
                 assumed_balls_in_mouth = 0
                 deposit_balls(cv, boundrypixel, server)
             last_target = active_target
@@ -272,11 +273,10 @@ def start_robot_controller():
         # calculate angle to turn
         move_robot_towards_target(server, robotDir, vector_to_active_target, distance_to_target, power_through, slow)
 
-        if last_target is not None:
+        if last_target is not None and target_is_ball:
             if last_target == active_target and not slow:
                 current_target_tries += 1
             if current_target_tries > max_target_retries:
-                assumed_balls_in_mouth = 0
                 server.send_key_input("back")
                 navigation_waypoints = []
                 current_target_tries = 0

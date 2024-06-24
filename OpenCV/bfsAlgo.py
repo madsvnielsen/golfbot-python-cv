@@ -26,7 +26,7 @@ def find_nearest_non_zero(grid, start):
 
 def bfs(grid, start):
     rows, cols = len(grid), len(grid[0])
-    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Up, Down, Left, Right
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (1, 1), (1, -1) , (-1, 1), (-1, -1)]  # Up, Down, Left, Right
 
     start_row, start_col = start
     if grid[start_row][start_col] == 0:
