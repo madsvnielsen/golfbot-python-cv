@@ -128,7 +128,7 @@ def loop():
 def loop2():
     cv = CVInterface(1)
     boundrypixel = cv.get_course_boundary()
-    cv.initialize_grid((int(1920/16), int(1080/16)))
+    cv.initialize_grid((int(1920/32), int(1080/32)))
 
     navigation_waypoints = []
     actual_target = None
