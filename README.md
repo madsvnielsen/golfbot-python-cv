@@ -1,2 +1,4 @@
 # golfbot-python-cv
-R&amp;D of cv for golfbot using python and opencv
+Download dependencies from requirements.txt
+
+Run main.py with python 3
