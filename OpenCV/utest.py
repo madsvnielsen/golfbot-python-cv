@@ -2,7 +2,7 @@ import unittest
 from io import StringIO
 from aStarAlgo import is_valid, is_unblocked, is_destination, calculate_h_value, trace_path, Cell, a_star_search, robot_navigation
 from collections import deque
-from bfsAlgo import bfs
+from bfsAlgo import bfs, find_nearest_non_zero
 import sys
 
 
@@ -31,6 +31,7 @@ class AstarAlgoTest(unittest.TestCase):
     def test_calculate_h_value(self):
         self.assertEqual(calculate_h_value(0, 0, (3, 4)), 5.0)
         self.assertEqual(calculate_h_value(1, 1, (4, 5)), 5.0)
+        self.assertNotEqual(calculate_h_value(1, 1, (3, 4)), 5.0)
 
     def test_robot_navigation(self):
         blockArr = [(10, 10), (11, 10), (12, 10)]
@@ -144,6 +145,35 @@ class bfsAlgo(unittest.TestCase):
         start = (1, 1)
         expected = []
         self.assertEqual(bfs(grid, start), expected)
+
+
+class find_non_zero(unittest.TestCase):
+
+    def test_start_non_zero(self):
+        grid = [
+            [1, 1, 1, 1],
+            [1, 3, 0, 1],
+            [1, 0, 4, 1],
+            [1, 1, 1, 1]
+        ]
+        start = (1, 1)
+        expected = (1, 1)
+        self.assertEqual(find_nearest_non_zero(grid, start), expected)
+        expected = (2, 2)
+        self.assertNotEqual(find_nearest_non_zero(grid, start), expected)
+
+    def test_start_zero(self):
+        grid = [
+            [1, 1, 1, 1],
+            [1, 3, 0, 1],
+            [1, 0, 4, 1],
+            [1, 1, 1, 1]
+        ]
+        start = (2, 1)
+        expected = (1, 1)
+        self.assertEqual(find_nearest_non_zero(grid, start), expected)
+        expected = (2, 2)
+        self.assertNotEqual(find_nearest_non_zero(grid, start), expected)
 
 
 if __name__ == '__main__':
