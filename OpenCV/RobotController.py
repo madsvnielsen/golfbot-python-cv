@@ -71,7 +71,7 @@ def find_robot_direction_and_angle(center_coords, front_coords):
 
 
 def find_error_in_plane(robotDistanceFromCenter):
-    cameraHeight = 172
+    cameraHeight = 170
     robotHeight = 24
     angleA = math.atan(cameraHeight / robotDistanceFromCenter)
     return robotHeight/math.tan(angleA)
@@ -200,8 +200,6 @@ def start_robot_controller():
     current_target_tries = 0
     slow = False
     while True:
-        
-        
         
         robotcenter, robotfront, robotDir = getRobotPosition(cv, boundrypixel)
         if robotcenter == None:

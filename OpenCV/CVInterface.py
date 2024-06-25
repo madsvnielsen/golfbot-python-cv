@@ -125,7 +125,7 @@ class CVInterface:
         rparams.maxThreshold = 200
         rparams.filterByCircularity = True
         rparams.filterByArea = True
-        rparams.minArea = 800
+        rparams.minArea = 900
         rparams.minCircularity = 0.4
         rparams.filterByConvexity = True
         rparams.minConvexity = 0.87 
@@ -135,7 +135,7 @@ class CVInterface:
         self.__robot_detector = cv2.SimpleBlobDetector_create(rparams)
         self.__robot_origin_lower_color = np.array([45, 10, 10], dtype='uint8')  #Lower color of center (green circle)
         self.__robot_origin_upper_color = np.array([95, 255, 255], dtype='uint8') #Upper color of center
-        self.__robot_direction_lower_color = np.array([0, 100, 10], dtype='uint8') #Lower color of direction marker (orange)
+        self.__robot_direction_lower_color = np.array([0, 150, 10], dtype='uint8') #Lower color of direction marker (orange)
         self.__robot_direction_upper_color = np.array([40, 255, 255], dtype='uint8') #Upper color of direction marker
     
 # Camera settings
